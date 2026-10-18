@@ -1,0 +1,8 @@
+node_modules/
+**/.next/
+**/dist/
+**/build/
+**/.dart_tool/
+pnpm-lock.yaml
+packages/api-contracts/generated.ts
+packages/api-contracts/openapi.json

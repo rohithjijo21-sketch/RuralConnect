@@ -1,0 +1,11 @@
+{
+  "name": "@ruralconnect/worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=../../.env src/main.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
+  }
+}

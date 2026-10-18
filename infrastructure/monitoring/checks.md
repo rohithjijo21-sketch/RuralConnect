@@ -1,0 +1,1 @@
+Required pre-release alerts: API readiness/error rate/latency, DB connections and slow queries, WebSocket connection/replay lag, stale active-service GPS, worker/notification backlog, booking conflicts, payment reconciliation and backup age. No monitoring provider is configured or verified.

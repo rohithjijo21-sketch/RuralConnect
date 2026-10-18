@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.next/
+.env
+.env.*
+!.env.example
+.dart_tool/
+build/
+.flutter-plugins-dependencies
+coverage/
+*.log
+*.jks
+*.keystore
+
+apps/admin/next-env.d.ts
+**/*.tsbuildinfo

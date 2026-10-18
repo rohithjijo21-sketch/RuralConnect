@@ -1,0 +1,9 @@
+FROM node:24-bookworm-slim AS build
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@11.25.0 --activate
+COPY . .
+RUN pnpm install --frozen-lockfile && pnpm --filter @ruralconnect/api build
+ENV NODE_ENV=production
+USER node
+EXPOSE 3001
+CMD ["node","services/api/dist/main.js"]

@@ -1,0 +1,24 @@
+{
+  "name": "ruralconnect",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24.15"
+  },
+  "scripts": {
+    "build": "pnpm --filter @ruralconnect/api build && pnpm --filter @ruralconnect/admin build",
+    "test": "pnpm --filter @ruralconnect/api test",
+    "typecheck": "pnpm --filter @ruralconnect/api typecheck && pnpm --filter @ruralconnect/admin typecheck",
+    "db:migrate": "pnpm --filter @ruralconnect/api migrate",
+    "db:seed": "pnpm --filter @ruralconnect/api seed",
+    "dev:api": "pnpm --filter @ruralconnect/api dev",
+    "dev:admin": "pnpm --filter @ruralconnect/admin dev",
+    "contracts:generate": "pnpm --filter @ruralconnect/api-contracts generate",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10"
+  }
+}

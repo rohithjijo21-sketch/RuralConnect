@@ -1,0 +1,6 @@
+{
+  "name": "@ruralconnect/shared-types",
+  "private": true,
+  "type": "module",
+  "exports": "./index.ts"
+}

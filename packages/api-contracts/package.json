@@ -1,0 +1,11 @@
+{
+  "name": "@ruralconnect/api-contracts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node scripts/generate.mjs && openapi-typescript openapi.json -o generated.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.10.1"
+  }
+}

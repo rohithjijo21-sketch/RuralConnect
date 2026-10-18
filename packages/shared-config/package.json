@@ -1,0 +1,6 @@
+{
+  "name": "@ruralconnect/shared-config",
+  "private": true,
+  "type": "module",
+  "exports": "./index.mjs"
+}

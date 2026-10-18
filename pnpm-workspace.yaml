@@ -1,0 +1,9 @@
+packages:
+  - apps/admin
+  - services/*
+  - packages/*
+allowBuilds:
+  '@nestjs/core': true
+  esbuild: true
+  '@tailwindcss/oxide': true
+  sharp: true

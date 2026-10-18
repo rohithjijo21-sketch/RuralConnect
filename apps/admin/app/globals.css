@@ -1,0 +1,149 @@
+@import 'tailwindcss';
+:root {
+  color-scheme: light dark;
+  --bg: #f2f5f0;
+  --ink: #172c27;
+  --card: white;
+  --line: #dce4de;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font:
+    16px/1.5 system-ui,
+    sans-serif;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+  background: #13634b;
+  color: white;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+input,
+select,
+textarea {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #879c91;
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+}
+label {
+  display: block;
+  margin: 10px 0;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 4vw;
+  background: #123e32;
+  color: white;
+}
+header b {
+  font-size: 24px;
+}
+main {
+  max-width: 1250px;
+  margin: 32px auto;
+  padding: 0 24px;
+}
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 12px;
+  color: #537669;
+}
+h1 {
+  font-size: 34px;
+  letter-spacing: -0.04em;
+}
+h2 {
+  font-size: 21px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 20px;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #e5efe6;
+  color: #174832;
+  font-size: 12px;
+  font-weight: 700;
+}
+.warning {
+  background: #fff0d5;
+  color: #7b460b;
+  padding: 14px;
+  border-radius: 10px;
+}
+.error {
+  background: #ffe3e0;
+  color: #7a1919;
+  padding: 14px;
+  border-radius: 10px;
+}
+.muted {
+  color: #64786d;
+  font-size: 14px;
+}
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+nav {
+  display: flex;
+  gap: 8px;
+  margin: 20px 0;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+a {
+  color: inherit;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1c18;
+    --ink: #e4eee8;
+    --card: #1a2d25;
+    --line: #365044;
+  }
+  .muted,
+  .eyebrow {
+    color: #a5c0af;
+  }
+}
