@@ -43,7 +43,7 @@
 					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
 					<key>UISceneStoryboardFile</key>
 					<string>Main</string>
-				
+
 </dict>
 			</array>
 		</dict>
@@ -67,7 +67,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	
+
 <key>NSLocationWhenInUseUsageDescription</key><string>Share this bus position with passengers only while an assigned service is active and the app is in the foreground.</string>
 </dict>
 </plist>
