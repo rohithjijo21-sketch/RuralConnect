@@ -16,7 +16,8 @@
     "dev:admin": "pnpm --filter @ruralconnect/admin dev",
     "contracts:generate": "pnpm --filter @ruralconnect/api-contracts generate",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "dev:phone": "pnpm --filter @ruralconnect/api dev:phone"
   },
   "devDependencies": {
     "prettier": "^3.9.10"

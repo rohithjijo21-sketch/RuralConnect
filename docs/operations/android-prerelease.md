@@ -1,19 +1,9 @@
-# RuralConnect Android 0.1.0 — development testing
+# RuralConnect Android 0.2.0 — phone testing
 
-Download and install the APK for each role:
+Install the passenger, driver and bus APKs from this release. These are debug-signed development builds. SHA256SUMS.txt verifies the files. The release uses the successful CI build for the tagged commit.
 
-- RuralConnect-passenger-0.1.0-dev.apk
-- RuralConnect-driver-0.1.0-dev.apk
-- RuralConnect-bus-0.1.0-dev.apk
+The passenger app includes an interactive, labelled read-only UI demo that needs no server. For live testing, connect all three apps to the API on your computer in server settings. Share Wi-Fi and enter http://YOUR_COMPUTER_LAN_IP:3001/v1.
 
-These are debug-signed Android testing builds, not production releases. Android application source: 0325fd9b8b02a283a98e8cd3d2e6e5a4f484e7f9. Built and tested by GitHub Actions run 39121614656. SHA256SUMS.txt verifies the downloaded APK files.
+Start the persistent local server with `pnpm dev:phone`. It generates sandbox credentials and a private PHONE_TESTING.md outside the repository. Use those credentials with passenger +919000000001, driver +919000000002 or bus crew +919000000003. No SMS is sent. Keep the computer and server running.
 
-## API setup is required
-
-All three APKs target http://10.0.2.2:3001/v1 — the Android emulator's route to an API on the development computer. Start the shared API/database and seed the fixture accounts using the repository README. There is no hosted production backend, and no SMS is sent. Use your locally configured sandbox OTP and sandbox access key to sign in.
-
-These APKs can be installed on a phone, but their emulator API address will not connect from a physical phone. A phone build needs a reachable API_URL (LAN development server or an HTTPS staging API). Do not enter real personal/payment data into these development builds.
-
-Passenger fixture: +919000000001. Driver: +919000000002. Bus crew: +919000000003. Operator portal: +919000000004.
-
-Implemented functionality and remaining work are recorded in DELIVERY_STATUS.md. Production OTP, digital payments, full onboarding, device/GPS acceptance, staging operations and other release gates remain unfinished. Future development APKs may need an uninstall before installation if their debug signing key changes. iOS is deferred.
+Passenger improvements include bus search/details, freshness indicators, shared-seat reservations, history, profile and connection settings. Demo data never creates bookings or payments. Production SMS, digital payments, full private ride matching, operational hardening and device acceptance remain unfinished; see DELIVERY_STATUS.md. A changed debug signing key may require uninstalling the previous app, clearing its local data. iOS is deferred.

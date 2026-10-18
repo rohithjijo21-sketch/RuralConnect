@@ -448,6 +448,15 @@ class Api {
       )
     ).rows;
   }
+  @Get('me/reservations') async myReservations(@Headers('authorization') h: string) {
+    const actor = await this.auth.actor(h);
+    return (
+      await pool.query(
+        'SELECT r.id,r.trip_id,r.pickup_sequence,r.dropoff_sequence,r.seats,r.fare_paise,r.status,r.created_at,t.departure_at,p.name pickup_name,d.name dropoff_name FROM seat_reservations r JOIN shared_trips t ON t.id=r.trip_id JOIN shared_trip_stops p ON p.trip_id=r.trip_id AND p.sequence=r.pickup_sequence JOIN shared_trip_stops d ON d.trip_id=r.trip_id AND d.sequence=r.dropoff_sequence WHERE r.passenger_id=$1 ORDER BY r.created_at DESC LIMIT 100',
+        [actor.id],
+      )
+    ).rows;
+  }
   @Get('bookings') async bookingsList(@Headers('authorization') h: string) {
     const a = await this.auth.actor(h);
     return (

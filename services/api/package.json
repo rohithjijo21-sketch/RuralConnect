@@ -11,7 +11,8 @@
     "test:integration": "tsx --test test/integration/*.test.ts",
     "migrate": "node --env-file=../../.env --import tsx scripts/migrate.ts",
     "seed": "node --env-file=../../.env --import tsx scripts/seed.ts",
-    "test:embedded": "node scripts/test-embedded.mjs"
+    "test:embedded": "node scripts/test-embedded.mjs",
+    "dev:phone": "node scripts/dev-phone.mjs"
   },
   "dependencies": {
     "@nestjs/common": "12.1.3",

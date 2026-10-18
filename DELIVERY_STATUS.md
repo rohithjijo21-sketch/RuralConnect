@@ -95,3 +95,6 @@ Offline logout additionally clears local credentials even if server revocation c
 ## Android-first delivery decision
 
 User direction: build and test Android now; return to iOS later. All three Android debug APKs built successfully in GitHub Actions run 39121614656 (application source commit 0325fd9). That run also passed native PostgreSQL/PostGIS integration, backend tests, admin build, three Flutter app smoke tests and five shared mobile tests. The APKs use http://10.0.2.2:3001/v1 for an Android emulator connected to a locally running API. They are debug builds, not commercial releases; actual Android device/GPS, operator UAT, production integrations and monitoring/recovery remain unverified. Existing iOS scaffolding is retained, with permission plist structure checked, but further iOS work/builds are deferred.
+
+## Android 0.2.0 update
+Runtime Wi-Fi server configuration, persistent local test backend and refreshed passenger search, bus detail, shared-seat/history/account screens are implemented. The labelled demo rejects mutations. Actual APK device acceptance remains outstanding. Production limitations above still apply.

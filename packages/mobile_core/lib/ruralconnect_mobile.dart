@@ -12,6 +12,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:web_socket_channel/io.dart';
 
 import 'src/api.dart';
+import 'src/connection.dart';
+import 'src/passenger.dart';
+export 'src/passenger.dart';
+export 'src/demo.dart';
 export 'src/api.dart';
 
 final apiProvider = Provider<Api>((ref) => Api());
@@ -34,8 +38,18 @@ class _AppState extends ConsumerState<RuralConnectApp> {
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) =>
-            Home(mode: widget.mode, title: widget.title),
+        builder: (context, state) => ConnectionGate(
+          api: ref.read(apiProvider),
+          mode: widget.mode,
+          title: widget.title,
+          builder: (api, settings) => widget.mode == 'passenger'
+              ? PassengerScreen(api: api, onConnectionSettings: settings)
+              : Home(
+                  mode: widget.mode,
+                  title: widget.title,
+                  onConnectionSettings: settings,
+                ),
+        ),
       ),
     ],
   );
@@ -48,6 +62,7 @@ class _AppState extends ConsumerState<RuralConnectApp> {
   @override
   Widget build(BuildContext context) => MaterialApp.router(
     title: widget.title,
+    debugShowCheckedModeBanner: false,
     routerConfig: router,
     supportedLocales: const [Locale('en'), Locale('ml')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -68,7 +83,13 @@ class _AppState extends ConsumerState<RuralConnectApp> {
 
 class Home extends ConsumerStatefulWidget {
   final String mode, title;
-  const Home({super.key, required this.mode, required this.title});
+  final VoidCallback? onConnectionSettings;
+  const Home({
+    super.key,
+    required this.mode,
+    required this.title,
+    this.onConnectionSettings,
+  });
   @override
   ConsumerState<Home> createState() => _HomeState();
 }
@@ -439,6 +460,12 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
       appBar: AppBar(
         title: Text(widget.title),
         actions: [
+          if (widget.onConnectionSettings != null)
+            IconButton(
+              tooltip: 'Server connection settings',
+              onPressed: widget.onConnectionSettings,
+              icon: const Icon(Icons.dns_outlined),
+            ),
           if (signedIn)
             IconButton(
               tooltip: 'Sign out',

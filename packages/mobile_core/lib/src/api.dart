@@ -1,13 +1,15 @@
 import 'dart:async';
-
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Api {
   final Dio dio;
   final FlutterSecureStorage storage;
   String? access;
+  bool endpointConfirmed = false;
   Future<void>? _refreshing;
+  bool get isDemo => false;
   Api({Dio? client, FlutterSecureStorage? secureStorage})
     : dio =
           client ??
@@ -15,7 +17,7 @@ class Api {
             BaseOptions(
               baseUrl: const String.fromEnvironment(
                 'API_URL',
-                defaultValue: 'http://10.0.2.2:3001/v1',
+                defaultValue: '',
               ),
               connectTimeout: const Duration(seconds: 10),
               receiveTimeout: const Duration(seconds: 15),
@@ -23,7 +25,86 @@ class Api {
           ),
       storage = secureStorage ?? const FlutterSecureStorage();
   Future<void> restore() async {
+    final p = await SharedPreferences.getInstance();
+    final saved = p.getString('api_endpoint');
+    if (saved != null) {
+      dio.options.baseUrl = saved;
+      endpointConfirmed = true;
+    }
     access = await storage.read(key: 'access');
+  }
+
+  static String validateEndpoint(String value) {
+    final uri = Uri.tryParse(value.trim());
+    if (uri == null ||
+        !uri.hasAuthority ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty ||
+        uri.hasQuery ||
+        uri.hasFragment) {
+      throw const FormatException(
+        'Enter a server address such as http://192.168.1.10:3001/v1',
+      );
+    }
+    final parts = uri.host.split('.').map(int.tryParse).toList();
+    final privateV4 =
+        parts.length == 4 &&
+        parts.every((n) => n != null && n >= 0 && n <= 255) &&
+        (parts[0] == 10 ||
+            parts[0] == 127 ||
+            (parts[0] == 192 && parts[1] == 168) ||
+            (parts[0] == 172 && parts[1]! >= 16 && parts[1]! <= 31));
+    if (uri.scheme != 'https' &&
+        !(uri.scheme == 'http' && (privateV4 || uri.host == 'localhost'))) {
+      throw const FormatException(
+        'Use HTTPS for a hosted server. HTTP is allowed only on a private test network.',
+      );
+    }
+    final path = uri.path.replaceFirst(RegExp(r'/+$'), '');
+    if (path.isNotEmpty && path != '/v1') {
+      throw const FormatException('The API address must end in /v1');
+    }
+    return uri.replace(path: '/v1').toString();
+  }
+
+  Future<void> connect(String value) async {
+    final url = validateEndpoint(value);
+    final probe = Dio(
+      BaseOptions(
+        baseUrl: url,
+        connectTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 10),
+      ),
+    );
+    try {
+      final h = await probe.get('/health');
+      final r = await probe.get('/ready');
+      if (h.data is! Map ||
+          h.data['status'] != 'ok' ||
+          r.data is! Map ||
+          r.data['status'] != 'ready') {
+        throw StateError('This address is not a ready RuralConnect API.');
+      }
+    } finally {
+      probe.close();
+    }
+    if (dio.options.baseUrl != url) {
+      if (access != null) {
+        try {
+          await logout();
+        } catch (_) {
+          await clear();
+        }
+      } else {
+        await clear();
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('bus_cache');
+    }
+    dio.options.baseUrl = url;
+    final p = await SharedPreferences.getInstance();
+    await p.setString('api_endpoint', url);
+    endpointConfirmed = true;
   }
 
   Future<void> save(Map<String, dynamic> data) async {

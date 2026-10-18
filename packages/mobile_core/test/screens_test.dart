@@ -14,6 +14,7 @@ class FixtureApi extends Api {
     this.failNetwork = false,
     this.rejectSeat = false,
   }) {
+    endpointConfirmed = true;
     if (signedIn) access = 'fixture-access';
   }
   @override
@@ -51,6 +52,12 @@ class FixtureApi extends Api {
         'accessToken': 'fixture-access',
         'refreshToken': 'fixture-refresh',
       };
+    }
+    if (path == '/me') return {'name': '', 'language': 'en'};
+    if (path == '/shared-trips' ||
+        path == '/bookings' ||
+        path == '/me/reservations') {
+      return [];
     }
     if (path.startsWith('/bus/trips?')) return [fixtureTrip];
     if (path.startsWith('/shared-trips/') && path.endsWith('/reservations')) {
@@ -124,12 +131,23 @@ void main() {
         find.widgetWithText(TextField, 'Configured six-digit OTP'),
         '123456',
       );
+      await tester.ensureVisible(find.byType(CheckboxListTile));
       await tester.tap(find.byType(CheckboxListTile));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Sign in'));
       await tester.tap(find.text('Sign in'));
       await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Fixture Kerala bus'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('Fixture Kerala bus'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.textContaining('Browse without GPS permission'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(
         find.textContaining('Browse without GPS permission'),
         findsOneWidget,
@@ -159,7 +177,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('Network unavailable.'), findsOneWidget);
       expect(
-        find.textContaining('Offline · cached schedule only.'),
+        find.textContaining('Offline · Cached schedules only.'),
         findsOneWidget,
       );
       expect(find.textContaining('Server confirmed reservation'), findsNothing);

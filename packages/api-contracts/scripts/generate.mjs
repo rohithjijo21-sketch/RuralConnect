@@ -179,6 +179,7 @@ for (const m of source.matchAll(/@(Get|Post|Patch|Delete)\('([^']+)'\)/g)) {
       'GET shared-trips',
       'GET driver/shared-trips',
       'GET bookings',
+        'GET me/reservations',
       'GET driver/vehicles',
       'GET operator/audit',
     ].includes(k)
