@@ -41,3 +41,7 @@ Offline logout additionally clears local credentials even if server revocation c
 
 ## Android 0.2.0 phone testing
 Runtime server settings, a persistent local backend and passenger UI with labelled read-only demo now support phone testing. A physical phone confirmed Wi-Fi health connectivity. The actual Dio client passed connection, sandbox sign-in, schedule/history and logout checks. Actual APK device acceptance and production release gates remain open.
+
+## Production track started — 18 October 2026
+
+User approved proceeding toward production, with Android first. Hosting/domain/SMS are not yet set up. First batch adds API production configuration and HTTP safeguards, HTTPS-only release client configuration, explicit Android signing and disposable-key release-bundle CI verification. This is release preparation, not production readiness; real SMS login, admin MFA, hosting, remaining product workflows and operational/device acceptance remain open. See docs/operations/production-track.md.

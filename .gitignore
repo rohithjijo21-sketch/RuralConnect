@@ -16,3 +16,4 @@ apps/admin/next-env.d.ts
 **/*.tsbuildinfo
 
 .local-data/
+**/key.properties

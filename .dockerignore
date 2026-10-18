@@ -5,3 +5,12 @@ node_modules
 .git
 .env
 **/build
+**/.local-data
+**/.env
+**/.env.*
+**/*.jks
+**/*.keystore
+**/key.properties
+**/.dart_tool
+**/coverage
+**/*.log

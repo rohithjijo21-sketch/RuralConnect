@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -27,7 +28,12 @@ class Api {
   Future<void> restore() async {
     final p = await SharedPreferences.getInstance();
     final saved = p.getString('api_endpoint');
-    if (saved != null) {
+    if (kReleaseMode) {
+      dio.options.baseUrl = validateEndpoint(
+        const String.fromEnvironment('API_URL'),
+      );
+      endpointConfirmed = true;
+    } else if (saved != null) {
       dio.options.baseUrl = saved;
       endpointConfirmed = true;
     }
@@ -54,6 +60,9 @@ class Api {
             parts[0] == 127 ||
             (parts[0] == 192 && parts[1] == 168) ||
             (parts[0] == 172 && parts[1]! >= 16 && parts[1]! <= 31));
+    if (kReleaseMode && uri.scheme != 'https') {
+      throw const FormatException('Release builds require HTTPS.');
+    }
     if (uri.scheme != 'https' &&
         !(uri.scheme == 'http' && (privateV4 || uri.host == 'localhost'))) {
       throw const FormatException(
@@ -69,6 +78,12 @@ class Api {
 
   Future<void> connect(String value) async {
     final url = validateEndpoint(value);
+    if (kReleaseMode &&
+        url != validateEndpoint(const String.fromEnvironment('API_URL'))) {
+      throw const FormatException(
+        'This release uses the configured RuralConnect server.',
+      );
+    }
     final probe = Dio(
       BaseOptions(
         baseUrl: url,

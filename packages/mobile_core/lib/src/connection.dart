@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'api.dart';
 import 'demo.dart';
@@ -161,7 +162,7 @@ class _ConnectionGateState extends State<ConnectionGate> {
                       busy ? 'Checking server…' : 'Connect and continue',
                     ),
                   ),
-                  if (widget.mode == 'passenger') ...[
+                  if (widget.mode == 'passenger' && !kReleaseMode) ...[
                     const SizedBox(height: 12),
                     OutlinedButton(
                       onPressed: busy

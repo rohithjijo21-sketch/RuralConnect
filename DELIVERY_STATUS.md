@@ -98,3 +98,7 @@ User direction: build and test Android now; return to iOS later. All three Andro
 
 ## Android 0.2.0 update
 Runtime Wi-Fi server configuration, persistent local test backend and refreshed passenger search, bus detail, shared-seat/history/account screens are implemented. The labelled demo rejects mutations. Actual APK device acceptance remains outstanding. Production limitations above still apply.
+
+## Production foundation batch
+
+Production configuration validation, HTTPS transport restrictions, request correlation, response cache protection and bounded request bodies have been added. Android release signing is now configurable through protected environment variables, with HTTPS API validation and no debug-key fallback. Signed CI bundles use disposable test keys only. Production authentication remains deliberately disabled until a real approved provider and registration flow are integrated. This does not change the overall non-production-ready status.

@@ -60,6 +60,20 @@ jobs:
             flutter test
             flutter build apk --debug
           done
+      - name: Verify signed release bundles with disposable CI credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          export RC_KEYSTORE_PATH="$RUNNER_TEMP/ci-release.jks"
+          export RC_KEYSTORE_PASSWORD="disposable-ci-signing-only"
+          export RC_KEY_ALIAS="ci-test"
+          export RC_KEY_PASSWORD="$RC_KEYSTORE_PASSWORD"
+          keytool -genkeypair -keystore "$RC_KEYSTORE_PATH" -storepass "$RC_KEYSTORE_PASSWORD" -keypass "$RC_KEY_PASSWORD" -alias "$RC_KEY_ALIAS" -dname "CN=Disposable CI, O=RuralConnect Test" -keyalg RSA -keysize 2048 -validity 2 -noprompt
+          for app in passenger driver bus; do
+            cd "$GITHUB_WORKSPACE/apps/$app"
+            flutter build appbundle --release --dart-define=API_URL=https://api.example.invalid/v1
+          done
+          rm -f "$RC_KEYSTORE_PATH"
       - uses: actions/upload-artifact@v4
         with:
           name: ruralconnect-development-apks

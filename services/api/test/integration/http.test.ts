@@ -48,6 +48,22 @@ test(
       return result.data;
     }
     try {
+      const healthy = await fetch(base + '/health');
+      assert.match(healthy.headers.get('x-request-id') ?? '', /^[a-f0-9-]{36}$/);
+      assert.equal(healthy.headers.get('cache-control'), 'no-store');
+      assert.equal(healthy.headers.get('x-powered-by'), null);
+      const oversized = await fetch(base + '/auth/otp/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: 'x'.repeat(70000) }),
+      });
+      assert.equal(oversized.status, 413);
+      const malformed = await fetch(base + '/auth/otp/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{',
+      });
+      assert.equal(malformed.status, 400);
       const passenger = await login('+919000000001'),
         crew = await login('+919000000003'),
         driver = await login('+919000000002');

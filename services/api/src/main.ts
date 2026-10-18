@@ -1,4 +1,6 @@
 import 'reflect-metadata';
+import { randomUUID } from 'node:crypto';
+import { runtimeConfig } from './config.js';
 import { readFile } from 'node:fs/promises';
 import { NestFactory } from '@nestjs/core';
 import {
@@ -41,19 +43,24 @@ class Errors implements ExceptionFilter {
   catch(error: any, host: any) {
     const res = host.switchToHttp().getResponse();
     const status =
-      error instanceof ZodError
-        ? 400
-        : error instanceof HttpException
-          ? error.getStatus()
-          : error.code === '23505'
-            ? 409
-            : 500;
+      error.type === 'entity.too.large'
+        ? 413
+        : error instanceof SyntaxError && (error as any).status === 400
+          ? 400
+          : error instanceof ZodError
+            ? 400
+            : error instanceof HttpException
+              ? error.getStatus()
+              : error.code === '23505'
+                ? 409
+                : 500;
     if (status === 500)
       console.error(
         JSON.stringify({ level: 'error', code: error.code ?? 'internal', name: error.name }),
       );
     res.status(status).json({
       statusCode: status,
+      requestId: host.switchToHttp().getRequest().requestId,
       message:
         error instanceof ZodError
           ? 'Invalid request'
@@ -516,13 +523,30 @@ class Api {
 @Module({ controllers: [Api], providers: [Auth, Bus, Bookings] })
 class App {}
 export async function bootstrap(port = Number(process.env.PORT ?? 3001)) {
-  if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required');
-  if (process.env.NODE_ENV === 'production' && process.env.OTP_MODE === 'sandbox')
-    throw new Error('Sandbox OTP prohibited in production');
-  const app = await NestFactory.create(App, { logger: ['error', 'warn', 'log'] });
+  const config = runtimeConfig();
+  const app = await NestFactory.create<import('@nestjs/platform-express').NestExpressApplication>(
+    App,
+    { logger: ['error', 'warn', 'log'], bodyParser: false },
+  );
+  const express = app.getHttpAdapter().getInstance();
+  express.disable('x-powered-by');
+  express.set('trust proxy', config.trustedProxies.length ? config.trustedProxies : false);
+  app.use((req: any, res: any, next: any) => {
+    const requestId = randomUUID();
+    req.requestId = requestId;
+    res.setHeader('X-Request-ID', requestId);
+    res.setHeader('Cache-Control', 'no-store');
+    if (config.requireHttps && !req.secure && !['/v1/health', '/v1/ready'].includes(req.path)) {
+      res.status(400).json({ message: 'HTTPS required', requestId });
+      return;
+    }
+    next();
+  });
+  app.useBodyParser('json', { limit: '64kb' });
   app.use(helmet());
   app.enableCors({
-    origin: process.env.ADMIN_ORIGIN ?? 'http://localhost:3000',
+    origin: config.adminOrigin,
+    exposedHeaders: ['X-Request-ID'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-Sandbox-Key'],
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   });
@@ -536,14 +560,27 @@ export async function bootstrap(port = Number(process.env.PORT ?? 3001)) {
     try {
       await auth.rate('http:' + hashIp(req.ip ?? 'unknown'), 300, 60);
       next();
-    } catch {
-      res.status(429).json({ message: 'Request limit exceeded' });
+    } catch (error) {
+      const limited = error instanceof HttpException && error.getStatus() === 429;
+      res.status(limited ? 429 : 503).json({
+        message: limited ? 'Request limit exceeded' : 'Service temporarily unavailable',
+        requestId: req.requestId,
+      });
     }
   });
   await app.listen(port, '0.0.0.0');
   const wss = new WebSocketServer({ noServer: true, maxPayload: 4096 });
   app.getHttpServer().on('upgrade', async (req: any, socket: any, head: any) => {
     try {
+      const forwarded =
+        config.trustedProxies.length && express.get('trust proxy fn')(socket.remoteAddress, 0);
+      if (
+        config.requireHttps &&
+        !socket.encrypted &&
+        !(forwarded && req.headers['x-forwarded-proto'] === 'https')
+      )
+        throw new Error('HTTPS required');
+      await auth.rate('ws-connect:' + hashIp(socket.remoteAddress ?? 'unknown'), 30, 60);
       const a = await auth.actor(req.headers.authorization);
       await auth.rate('ws:' + a.id, 10, 60);
       const url = new URL(req.url, 'http://localhost');

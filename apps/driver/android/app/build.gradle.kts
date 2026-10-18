@@ -4,8 +4,15 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-if (gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }) {
-    throw GradleException("Release signing is not configured. Follow docs/operations/mobile.md; development builds are debug only.")
+val releaseRequested = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
+val signingValues = listOf("RC_KEYSTORE_PATH", "RC_KEYSTORE_PASSWORD", "RC_KEY_ALIAS", "RC_KEY_PASSWORD").associateWith { System.getenv(it) }
+if (releaseRequested) {
+    if (signingValues.values.any { it.isNullOrBlank() }) throw GradleException("Release signing requires RC_KEYSTORE_PATH, RC_KEYSTORE_PASSWORD, RC_KEY_ALIAS and RC_KEY_PASSWORD.")
+    if (!file(signingValues["RC_KEYSTORE_PATH"]!!).isFile) throw GradleException("Release keystore is missing.")
+    val defines = (project.findProperty("dart-defines") as? String ?: "").split(",").filter { it.isNotEmpty() }.map { String(java.util.Base64.getDecoder().decode(it)) }
+    val api = defines.find { it.startsWith("API_URL=") }?.substringAfter("=")
+    val uri = api?.let { java.net.URI(it) }
+    if (uri == null || uri.scheme != "https" || uri.host.isNullOrBlank() || uri.userInfo != null || uri.query != null || uri.fragment != null || uri.path != "/v1") throw GradleException("Release requires --dart-define=API_URL=https://YOUR_API_HOST/v1")
 }
 
 android {
@@ -33,9 +40,19 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (releaseRequested) {
+            create("production") {
+                storeFile = file(signingValues["RC_KEYSTORE_PATH"]!!)
+                storePassword = signingValues["RC_KEYSTORE_PASSWORD"]
+                keyAlias = signingValues["RC_KEY_ALIAS"]
+                keyPassword = signingValues["RC_KEY_PASSWORD"]
+            }
+        }
+    }
     buildTypes {
         release {
-            // Release signing must be configured explicitly before removing the release gate.
+            if (releaseRequested) signingConfig = signingConfigs.getByName("production")
         }
     }
 }
