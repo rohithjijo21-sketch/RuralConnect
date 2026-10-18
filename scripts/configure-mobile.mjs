@@ -27,11 +27,14 @@ for (const name of apps) {
     if (name === 'bus') {
       const plist = new URL('ios/Runner/Info.plist', base);
       text = await readFile(plist, 'utf8');
-      if (!text.includes('NSLocationWhenInUseUsageDescription'))
-        text = text.replace(
-          '</dict>',
-          '<key>NSLocationWhenInUseUsageDescription</key><string>Share this bus position with passengers only while an assigned service is active and the app is in the foreground.</string>\n</dict>',
-        );
+      text = text.replace(
+        /<key>NSLocationWhenInUseUsageDescription<\/key>\s*<string>[^<]*<\/string>/g,
+        '',
+      );
+      text = text.replace(
+        /<\/dict>\s*<\/plist>\s*$/,
+        '<key>NSLocationWhenInUseUsageDescription</key><string>Share this bus position with passengers only while an assigned service is active and the app is in the foreground.</string>\n</dict>\n</plist>',
+      );
       await writeFile(plist, text);
     }
   } catch (error) {

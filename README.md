@@ -1,5 +1,7 @@
 # RuralConnect
 
+**Current scope: Android first. Further iOS development and build testing are deferred at the user’s request.**
+
 A Kerala-first transport monorepo: Passenger, Driver and Bus Flutter clients, Next.js operator portal, NestJS API and PostgreSQL/PostGIS.
 
 **Development build. Not a production release.** Read [DELIVERY_STATUS.md](DELIVERY_STATUS.md) for requirement-by-requirement evidence and remaining work. No real SMS, digital payment, FCM delivery or simulated live positions are enabled.

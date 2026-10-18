@@ -1,5 +1,7 @@
 # Implementation plan and progress
 
+**Current scope: Android first. Further iOS development and build testing are deferred at the user’s request.**
+
 Last updated: 18 October 2026. No phase is labelled complete while required work remains. See DELIVERY_STATUS.md.
 
 | Phase          | Delivered work                                                                                                                        | Remaining before phase completion                                                                                                            |
