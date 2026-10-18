@@ -83,7 +83,7 @@ flutter build ios --release --no-codesign --dart-define=API_URL=https://YOUR-STA
 5. Bus crew reports delay/breakdown/cancellation. Passenger and operator refetch the persisted state. Missing/stale coordinates remain unavailable; scheduled times are not presented as live ETAs.
 6. Only the owning operator/admin may reinstate a cancelled dated service. All changes are audited. Recurring schedules remain untouched.
 
-This bus workflow passed backend HTTP/database/WebSocket tests. Mobile execution and human end-to-end acceptance remain unverified.
+This bus workflow passed backend HTTP/database/WebSocket tests. Physical-device execution and human end-to-end acceptance remain unverified.
 
 ## Documentation
 

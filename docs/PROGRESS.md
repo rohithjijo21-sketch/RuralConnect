@@ -34,3 +34,5 @@ Last updated: 18 October 2026. No phase is labelled complete while required work
 6. Complete legal/privacy/transport review, monitoring and recovery drills, then staging UAT.
 
 Additional evidence: initial GitHub platform CI passed against native PostgreSQL/PostGIS. Flutter 3.47.7/Dart 3.13.5 now installed locally; 3 smoke + 4 interaction tests pass, native targets/locks committed, debug APK CI added. Driver shared publish/boarding sources now exist; expiry/targeted push remain incomplete.
+
+Offline logout additionally clears local credentials even if server revocation cannot be reached. A dedicated Dart session test passes; total mobile tests are three app smoke tests, four UI interaction tests and one offline-session test. Server revocation is never claimed when offline.

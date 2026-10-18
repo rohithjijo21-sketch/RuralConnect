@@ -89,8 +89,11 @@ class Api {
   }
 
   Future<void> logout() async {
-    await request('/auth/logout', method: 'POST');
-    await clear();
+    try {
+      await request('/auth/logout', method: 'POST');
+    } finally {
+      await clear();
+    }
   }
 }
 

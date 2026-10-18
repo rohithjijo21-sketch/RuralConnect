@@ -13,3 +13,5 @@ Background GPS is NOT implemented. Do not add ACCESS_BACKGROUND_LOCATION, foregr
 Release gates: independent icons/labels, signing, deep links, crash reporting, full Malayalam localisation, screen-reader checks, location accuracy, low-end Android performance, offline recovery, secure token storage and native build/test execution.
 
 Android release tasks deliberately fail with an explicit Gradle release-signing gate. Configure a real release signing workflow and verify it before removing that gate; the Flutter template debug key must not sign a commercial release. CI builds debug APKs for local emulator testing only.
+
+Offline logout additionally clears local credentials even if server revocation cannot be reached. A dedicated Dart session test passes; total mobile tests are three app smoke tests, four UI interaction tests and one offline-session test. Server revocation is never claimed when offline.

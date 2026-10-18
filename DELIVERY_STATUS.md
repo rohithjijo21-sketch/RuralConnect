@@ -89,3 +89,5 @@ Native PostgreSQL CI and local Flutter analysis/widget tests have passed. Run An
 ## Additional verification
 
 Flutter 3.47.7 / Dart 3.13.5 SDK downloaded from the official archive and SHA-256 verified. All three apps pass analysis and one smoke test each; mobile_core passes four tests covering sign-in/bus display without GPS, offline status, rejected-seat confirmation protection and idempotent retry, and displaying a backend-acknowledged reservation ID. Native Android/iOS targets and resolved locks are committed. No actual-device, signed release or commercial readiness claim is made. Initial GitHub platform job passed: https://github.com/rohithjijo21-sketch/RuralConnect/actions/runs/39120575798 .
+
+Offline logout additionally clears local credentials even if server revocation cannot be reached. A dedicated Dart session test passes; total mobile tests are three app smoke tests, four UI interaction tests and one offline-session test. Server revocation is never claimed when offline.
