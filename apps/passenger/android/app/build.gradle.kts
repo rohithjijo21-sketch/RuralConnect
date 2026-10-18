@@ -1,3 +1,6 @@
+import java.net.URI
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -9,9 +12,9 @@ val signingValues = listOf("RC_KEYSTORE_PATH", "RC_KEYSTORE_PASSWORD", "RC_KEY_A
 if (releaseRequested) {
     if (signingValues.values.any { it.isNullOrBlank() }) throw GradleException("Release signing requires RC_KEYSTORE_PATH, RC_KEYSTORE_PASSWORD, RC_KEY_ALIAS and RC_KEY_PASSWORD.")
     if (!file(signingValues["RC_KEYSTORE_PATH"]!!).isFile) throw GradleException("Release keystore is missing.")
-    val defines = (project.findProperty("dart-defines") as? String ?: "").split(",").filter { it.isNotEmpty() }.map { String(java.util.Base64.getDecoder().decode(it)) }
+    val defines = (project.findProperty("dart-defines") as? String ?: "").split(",").filter { it.isNotEmpty() }.map { String(Base64.getDecoder().decode(it)) }
     val api = defines.find { it.startsWith("API_URL=") }?.substringAfter("=")
-    val uri = api?.let { java.net.URI(it) }
+    val uri = api?.let { URI(it) }
     if (uri == null || uri.scheme != "https" || uri.host.isNullOrBlank() || uri.userInfo != null || uri.query != null || uri.fragment != null || uri.path != "/v1") throw GradleException("Release requires --dart-define=API_URL=https://YOUR_API_HOST/v1")
 }
 
@@ -66,3 +69,4 @@ kotlin {
 flutter {
     source = "../.."
 }
+
