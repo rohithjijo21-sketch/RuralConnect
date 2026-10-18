@@ -4,7 +4,7 @@ Status: initial architecture, 18 October 2026. Scope/evidence: DELIVERY_STATUS.m
 
 ## ADR 001 — Modular monorepo and shared backend
 
-Three independently branded Flutter applications depend on mobile_core by path during development; extract/version that package before independent releases. Next.js is the operator/admin surface. A single NestJS REST API controls persistence, authorisation and trip transitions. Node 24 LTS; NestJS 12.1.3 and Next.js 16.4.2 were verified against the package registry. Dependencies are locked in pnpm-lock.yaml. Flutter dependency resolution is unverified.
+Three independently branded Flutter applications depend on mobile_core by path during development; extract/version that package before independent releases. Next.js is the operator/admin surface. A single NestJS REST API controls persistence, authorisation and trip transitions. Node 24 LTS; NestJS 12.1.3 and Next.js 16.4.2 were verified against the package registry. Dependencies are locked in pnpm-lock.yaml. Flutter dependencies resolved and locked with Flutter 3.47.7 / Dart 3.13.5.
 
 ## ADR 002 — PostgreSQL and explicit SQL
 

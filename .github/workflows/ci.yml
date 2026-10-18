@@ -44,17 +44,23 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.7'
           cache: true
-      - name: Generate native targets without replacing authored entry points
+      - name: Analyze and test shared mobile workflows
+        working-directory: packages/mobile_core
+        run: flutter pub get --enforce-lockfile && flutter analyze && flutter test
+      - name: Analyze, test and build independent Android apps
         shell: bash
         run: |
           for app in passenger driver bus; do
             cd "$GITHUB_WORKSPACE/apps/$app"
-            cp lib/main.dart "$RUNNER_TEMP/$app-main.dart"
-            flutter create --platforms android,ios --org in.ruralconnect --project-name "ruralconnect_$app" --no-pub .
-            cp "$RUNNER_TEMP/$app-main.dart" lib/main.dart
-            rm -f test/widget_test.dart
-            flutter pub get
+            flutter pub get --enforce-lockfile
             flutter analyze
             flutter test
+            flutter build apk --debug --dart-define=API_URL=http://10.0.2.2:3001/v1
           done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruralconnect-development-apks
+          path: apps/*/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7

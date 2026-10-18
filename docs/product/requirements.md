@@ -23,7 +23,7 @@ No public role-management endpoint exists. Demo operator setup is local seeding.
 
 - Passenger: sandbox sign-in → bus search → service status / alert subscription; shared services → first-to-final stop one-seat request → backend confirmation.
 - Bus: sandbox sign-in → today's assigned services → selected service → explicit state changes / reason → foreground GPS sharing controls.
-- Driver: sandbox sign-in → owned vehicles → online/offline. Publishing, offers, boarding, finances and onboarding screens remain pending.
+- Driver: sandbox sign-in → owned vehicles → online/offline → shared-trip publish form / reservations / boarding and trip status controls. Private offers, finances and document onboarding screens remain pending.
 - Operator: sandbox sign-in → operator scope → services / route creation / dated bus-and-crew assignment / audit history.
 - Admin: uses backend ADMIN permission for scoped bus operations. Full system administration navigation remains pending.
 

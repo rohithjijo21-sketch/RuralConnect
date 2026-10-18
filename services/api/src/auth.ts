@@ -101,6 +101,7 @@ export class Auth {
   async refresh(value: string) {
     const result = await transaction(async (db) => {
       const old = hash(value);
+      await db.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [old]);
       const reused = (
         await db.query('SELECT session_id FROM used_refresh_tokens WHERE hash=$1', [old])
       ).rows[0];

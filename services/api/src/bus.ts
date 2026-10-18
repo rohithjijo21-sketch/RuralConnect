@@ -34,6 +34,13 @@ export class Bus {
           ])
         ).rowCount);
     if (op) return true;
+    const today = (
+      await db.query(
+        "SELECT 1 FROM trip_instances WHERE id=$1 AND service_date=(now() AT TIME ZONE 'Asia/Kolkata')::date",
+        [trip.id],
+      )
+    ).rowCount;
+    if (!today) throw new ForbiddenException('Crew may update only current-day assigned services');
     if (
       !actor.roles.includes('BUS_CREW') ||
       !(
@@ -53,10 +60,11 @@ export class Bus {
         [topic, trip.id, trip.version, JSON.stringify(payload)],
       )
     ).rows[0];
-    await db.query(
-      'INSERT INTO notifications(user_id,event_id) SELECT user_id,$1 FROM notification_subscriptions WHERE trip_id=$2 ON CONFLICT DO NOTHING',
-      [e.id, trip.id],
-    );
+    if (topic !== 'bus.location.v1')
+      await db.query(
+        'INSERT INTO notifications(user_id,event_id) SELECT user_id,$1 FROM notification_subscriptions WHERE trip_id=$2 ON CONFLICT DO NOTHING',
+        [e.id, trip.id],
+      );
   }
   async search(date: string, origin?: string, destination?: string, operatorId?: string) {
     const { rows } = await pool.query(
