@@ -1,0 +1,41 @@
+name: Publish Android development APKs
+on:
+  push:
+    tags: ['android-dev-v*']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify the tested build provenance
+        run: |
+          test "$(gh api repos/$GH_REPO/actions/runs/39121614656 --jq '.conclusion')" = success
+          test "$(gh api repos/$GH_REPO/actions/runs/39121614656 --jq '.head_sha')" = 0325fd9b8b02a283a98e8cd3d2e6e5a4f484e7f9
+      - uses: actions/download-artifact@v4
+        with:
+          name: ruralconnect-development-apks
+          run-id: 39121614656
+          github-token: ${{ github.token }}
+          path: downloaded
+      - name: Prepare three separately named APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          for app in passenger driver bus; do
+            mapfile -t matches < <(find downloaded -type f -path "*/$app/*/app-debug.apk")
+            test "${#matches[@]}" -eq 1
+            test -s "${matches[0]}"
+            cp "${matches[0]}" "release-assets/RuralConnect-$app-0.1.0-dev.apk"
+          done
+          cd release-assets
+          sha256sum *.apk > SHA256SUMS.txt
+      - name: Publish development prerelease
+        run: |
+          gh release create "$GITHUB_REF_NAME" release-assets/*.apk release-assets/SHA256SUMS.txt --title "RuralConnect Android 0.1.0 — Development testing" --notes-file docs/operations/android-prerelease.md --prerelease --target "$GITHUB_SHA"
