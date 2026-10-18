@@ -700,8 +700,11 @@ class _PassengerScreenState extends State<PassengerScreen> {
         ],
       ),
       const SizedBox(height: 24),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
+        runSpacing: 6,
         children: [
           Text(
             transport == 0 ? 'Bus services' : 'Share-auto departures',
