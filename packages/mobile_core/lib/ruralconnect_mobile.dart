@@ -9,7 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'src/live_socket.dart';
 
 import 'src/api.dart';
 import 'src/connection.dart';
@@ -107,7 +108,7 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
   Timer? timer;
   Map<String, dynamic>? selected;
   StreamSubscription<Position>? gps;
-  IOWebSocketChannel? socket;
+  WebSocketChannel? socket;
   StreamSubscription<dynamic>? socketSub;
   Timer? reconnect;
   String cursor = '0';
@@ -285,11 +286,8 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
             'after': cursor,
           },
         );
-    socket = IOWebSocketChannel.connect(
-      url,
-      headers: {'Authorization': 'Bearer ${api.access}'},
-      pingInterval: const Duration(seconds: 20),
-    );
+    socket = connectLiveSocket(url, api.access!);
+    if (socket == null) return;
     socketSub = socket!.stream.listen(
       (raw) {
         try {

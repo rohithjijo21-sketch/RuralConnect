@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'live_socket.dart';
 import 'api.dart';
 
 const forest = Color(0xFF14634D);
@@ -1231,7 +1232,7 @@ class BusDetail extends StatefulWidget {
 class _BusDetailState extends State<BusDetail> {
   late Map<String, dynamic> trip = {...widget.initial};
   Timer? timer, retry;
-  IOWebSocketChannel? socket;
+  WebSocketChannel? socket;
   StreamSubscription<dynamic>? subscription;
   String cursor = '0';
   String? error;
@@ -1273,11 +1274,8 @@ class _BusDetailState extends State<BusDetail> {
     final url = Uri.parse(
       '${widget.api.dio.options.baseUrl.replaceFirst(RegExp(r'^http'), 'ws')}/live',
     ).replace(queryParameters: {'tripId': trip['id'].toString(), 'after': cursor});
-    socket = IOWebSocketChannel.connect(
-      url,
-      headers: {'Authorization': 'Bearer ${widget.api.access}'},
-      pingInterval: const Duration(seconds: 20),
-    );
+    socket = connectLiveSocket(url, widget.api.access!);
+    if (socket == null) return;
     subscription = socket!.stream.listen(
       (raw) {
         try {

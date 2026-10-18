@@ -26,6 +26,7 @@ class _ConnectionGateState extends State<ConnectionGate> {
   @override
   void initState() {
     super.initState();
+    if (kIsWeb && const bool.fromEnvironment('UI_DEMO')) demo = DemoApi();
     restore();
   }
 
