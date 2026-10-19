@@ -12,7 +12,9 @@
     "migrate": "node --env-file=../../.env --import tsx scripts/migrate.ts",
     "seed": "node --env-file=../../.env --import tsx scripts/seed.ts",
     "test:embedded": "node scripts/test-embedded.mjs",
-    "dev:phone": "node scripts/dev-phone.mjs"
+    "dev:phone": "node scripts/dev-phone.mjs",
+    "beta:invite": "node --env-file=../../.env --import tsx scripts/beta-invite.ts",
+    "beta:revoke": "node --env-file=../../.env --import tsx scripts/beta-revoke.ts"
   },
   "dependencies": {
     "@nestjs/common": "12.1.3",

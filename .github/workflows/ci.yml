@@ -58,7 +58,7 @@ jobs:
             flutter pub get --enforce-lockfile
             flutter analyze
             flutter test
-            flutter build apk --debug
+            flutter build apk --debug --dart-define=BETA_AUTH=true
           done
       - name: Verify signed release bundles with disposable CI credentials
         shell: bash

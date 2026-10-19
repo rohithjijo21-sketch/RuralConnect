@@ -241,6 +241,12 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
   }
 
   Future<void> login() async {
+    if (api.betaAuth) {
+      await api.redeemInvite(phone.text, sandbox.text, consent);
+      sandbox.clear();
+      await load();
+      return;
+    }
     if (challenge == null) {
       final r = await api.request(
         '/auth/otp/request',
@@ -516,10 +522,20 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 16),
-              const Text('Development sandbox · no SMS sent'),
+              Text(
+                api.betaAuth
+                    ? 'Private beta · invitation only · no SMS required'
+                    : 'Development sandbox · no SMS sent',
+              ),
               field(phone, 'Phone number (+91)', keyboard: TextInputType.phone),
-              field(sandbox, 'Local sandbox access key', secret: true),
-              if (challenge != null) ...[
+              field(
+                sandbox,
+                api.betaAuth
+                    ? 'Private invitation code'
+                    : 'Local sandbox access key',
+                secret: true,
+              ),
+              if (!api.betaAuth && challenge != null) ...[
                 field(
                   code,
                   'Configured six-digit OTP',
@@ -533,8 +549,20 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
                   ),
                 ),
               ],
+              if (api.betaAuth)
+                CheckboxListTile(
+                  value: consent,
+                  onChanged: (v) => setState(() => consent = v ?? false),
+                  title: const Text(
+                    'I understand this is a private beta and my phone number is not SMS verified.',
+                  ),
+                ),
               button(
-                challenge == null ? 'Request sandbox challenge' : 'Sign in',
+                api.betaAuth
+                    ? 'Join private beta'
+                    : challenge == null
+                    ? 'Request sandbox challenge'
+                    : 'Sign in',
                 login,
               ),
             ] else ...[

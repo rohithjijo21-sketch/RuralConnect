@@ -45,3 +45,7 @@ Runtime server settings, a persistent local backend and passenger UI with labell
 ## Production track started — 18 October 2026
 
 User approved proceeding toward production, with Android first. Hosting/domain/SMS are not yet set up. First batch adds API production configuration and HTTP safeguards, HTTPS-only release client configuration, explicit Android signing and disposable-key release-bundle CI verification. This is release preparation, not production readiness; real SMS login, admin MFA, hosting, remaining product workflows and operational/device acceptance remain open. See docs/operations/production-track.md.
+
+## SMS deferred; private beta invitations implemented
+
+19 October 2026: user deferred SMS OTP to the first update of the real app. Added explicit opt-in invitation login, trusted CLI provisioning/revocation, single-use code migration, phone-bound redemption and all-role mobile screens. No phone ownership verification is claimed; roles/approval/assignments remain server controlled. Existing development OTP is retained for local fixtures only. Public beta hosting and a new app release are still required. See docs/operations/beta-login.md.

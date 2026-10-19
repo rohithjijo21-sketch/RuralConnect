@@ -11,6 +11,33 @@ class Api {
   bool endpointConfirmed = false;
   Future<void>? _refreshing;
   bool get isDemo => false;
+  bool get betaAuth => kReleaseMode || const bool.fromEnvironment('BETA_AUTH');
+  Future<void> redeemInvite(String phone, String code, bool consent) async {
+    if (!consent) {
+      throw StateError('Confirm the private beta notice to continue.');
+    }
+    var number = phone.trim();
+    if (RegExp(r'^[6-9][0-9]{9}$').hasMatch(number)) number = '+91$number';
+    if (!RegExp(r'^\+91[6-9][0-9]{9}$').hasMatch(number)) {
+      throw const FormatException('Enter a valid Indian mobile number.');
+    }
+    if (!RegExp(r'^[A-Za-z0-9_-]{43}$').hasMatch(code.trim())) {
+      throw const FormatException(
+        'Paste the complete private invitation code.',
+      );
+    }
+    final result = await request(
+      '/auth/beta/redeem',
+      method: 'POST',
+      data: {
+        'phone': number,
+        'inviteCode': code.trim(),
+        'consentVersion': 'private-beta-v1',
+      },
+    );
+    await save(Map<String, dynamic>.from(result as Map));
+  }
+
   Api({Dio? client, FlutterSecureStorage? secureStorage})
     : dio =
           client ??

@@ -86,6 +86,36 @@ export class Auth {
     if (!result) throw new UnauthorizedException('OTP invalid or expired');
     return result;
   }
+  async redeemBeta(phone: string, code: string, consentVersion: string, ip: string) {
+    if (process.env.BETA_AUTH_ENABLED !== 'true')
+      throw new ForbiddenException('Beta sign-in is disabled');
+    phoneSchema.parse(phone);
+    await this.rate('beta-ip:' + hash(ip), 20, 3600);
+    await this.rate('beta-phone:' + hash(phone), 10, 3600);
+    const result = await transaction(async (db) => {
+      const row = (
+        await db.query(
+          "SELECT i.id,i.user_id FROM beta_invites i JOIN users u ON u.id=i.user_id WHERE i.token_hash=$1 AND u.phone=$2 AND i.consumed_at IS NULL AND i.expires_at>now() AND NOT u.suspended AND u.deleted_at IS NULL AND EXISTS(SELECT 1 FROM user_roles r WHERE r.user_id=u.id AND r.role IN ('PASSENGER','DRIVER','BUS_CREW')) AND NOT EXISTS(SELECT 1 FROM user_roles r WHERE r.user_id=u.id AND r.role IN ('OPERATOR','ADMIN')) FOR UPDATE OF i,u",
+          [hash(code), phone],
+        )
+      ).rows[0];
+      if (!row) return null;
+      await db.query('UPDATE beta_invites SET consumed_at=now() WHERE id=$1', [row.id]);
+      await db.query('INSERT INTO consent_records(user_id,version) VALUES($1,$2)', [
+        row.user_id,
+        consentVersion,
+      ]);
+      const accessToken = token(),
+        refreshToken = token();
+      await db.query(
+        "INSERT INTO sessions(user_id,access_hash,refresh_hash,access_expires,refresh_expires) VALUES($1,$2,$3,now()+interval '15 minutes',now()+interval '30 days')",
+        [row.user_id, hash(accessToken), hash(refreshToken)],
+      );
+      return { accessToken, refreshToken, expiresIn: 900 };
+    });
+    if (!result) throw new UnauthorizedException('Invitation invalid, expired or already used');
+    return result;
+  }
   async actor(header: string | undefined): Promise<Actor> {
     if (!header?.startsWith('Bearer ')) throw new UnauthorizedException();
     const { rows } = await pool.query(

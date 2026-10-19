@@ -148,6 +148,12 @@ class _PassengerScreenState extends State<PassengerScreen> {
   }
 
   Future<void> auth() async {
+    if (api.betaAuth) {
+      await api.redeemInvite(phone.text, key.text, consent);
+      key.clear();
+      await load();
+      return;
+    }
     if (challenge == null) {
       var number = phone.text.trim();
       if (RegExp(r'^[6-9][0-9]{9}$').hasMatch(number)) number = '+91$number';
@@ -508,7 +514,11 @@ class _PassengerScreenState extends State<PassengerScreen> {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 24),
-                const Text('Development sandbox · no SMS sent'),
+                Text(
+                  api.betaAuth
+                      ? 'Private beta · invitation only · no SMS required'
+                      : 'Development sandbox · no SMS sent',
+                ),
                 TextField(
                   controller: phone,
                   keyboardType: TextInputType.phone,
@@ -520,11 +530,13 @@ class _PassengerScreenState extends State<PassengerScreen> {
                 TextField(
                   controller: key,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Local sandbox access key',
+                  decoration: InputDecoration(
+                    labelText: api.betaAuth
+                        ? 'Private invitation code'
+                        : 'Local sandbox access key',
                   ),
                 ),
-                if (challenge != null) ...[
+                if (!api.betaAuth && challenge != null) ...[
                   const SizedBox(height: 12),
                   TextField(
                     controller: otp,
@@ -542,6 +554,15 @@ class _PassengerScreenState extends State<PassengerScreen> {
                     ),
                   ),
                 ],
+                if (api.betaAuth)
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: consent,
+                    onChanged: (v) => setState(() => consent = v ?? false),
+                    title: const Text(
+                      'I understand this is a private beta and my phone number is not SMS verified.',
+                    ),
+                  ),
                 if (error != null)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),
@@ -558,6 +579,8 @@ class _PassengerScreenState extends State<PassengerScreen> {
                   child: Text(
                     busy
                         ? 'Connecting…'
+                        : api.betaAuth
+                        ? 'Join private beta'
                         : challenge == null
                         ? 'Request sandbox challenge'
                         : 'Sign in',

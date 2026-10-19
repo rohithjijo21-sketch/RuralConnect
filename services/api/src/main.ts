@@ -91,7 +91,7 @@ class Api {
     return { status: 'ok' };
   }
   @Get('ready') async ready() {
-    const r = await pool.query("SELECT 1 FROM schema_migrations WHERE name='002_bookings.sql'");
+    const r = await pool.query("SELECT 1 FROM schema_migrations WHERE name='003_beta_invites.sql'");
     if (!r.rowCount) throw new HttpException('Migrations required', 503);
     return { status: 'ready' };
   }
@@ -109,6 +109,17 @@ class Api {
       .strict()
       .parse(b);
     return this.auth.verify(v.challengeId, v.code, v.consentVersion);
+  }
+  @Post('auth/beta/redeem') redeemBeta(@Body() b: unknown, @Req() req: any) {
+    const v = z
+      .object({
+        phone: phoneSchema,
+        inviteCode: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+        consentVersion: short,
+      })
+      .strict()
+      .parse(b);
+    return this.auth.redeemBeta(v.phone, v.inviteCode, v.consentVersion, req.ip ?? 'unknown');
   }
   @Post('auth/refresh') refresh(@Body() b: unknown) {
     return this.auth.refresh(

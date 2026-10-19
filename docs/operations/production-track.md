@@ -29,3 +29,6 @@ Build from apps/passenger, apps/driver or apps/bus with:
 This enables correct signing/configuration; it does not certify unfinished product flows as release ready. Hosting and provider credentials are configured outside Git. See infrastructure/deployment/production.env.example.
 
 References: [Flutter Android signing](https://docs.flutter.dev/deployment/android), [Express trusted proxy configuration](https://expressjs.com/en/guide/behind-proxies/).
+
+
+Update, 19 October 2026: SMS OTP is deferred to the first post-launch app update. For the current private beta, use owner-issued invitations in beta-login.md instead of waiting for an SMS provider. Privileged admin/operator authentication remains a separate unfinished requirement.

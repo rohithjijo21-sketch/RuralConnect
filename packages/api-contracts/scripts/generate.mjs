@@ -63,6 +63,11 @@ const schemas = {
   }),
 };
 const requests = {
+  'POST auth/beta/redeem': obj({
+    phone: str,
+    inviteCode: { type: 'string', pattern: '^[A-Za-z0-9_-]{43}$' },
+    consentVersion: str,
+  }),
   'POST auth/otp/request': obj({ phone: { type: 'string', pattern: '^\\+91[6-9][0-9]{9}$' } }),
   'POST auth/otp/verify': obj({
     challengeId: uuid,
@@ -132,7 +137,9 @@ for (const m of source.matchAll(/@(Get|Post|Patch|Delete)\('([^']+)'\)/g)) {
     route = '/' + p.replaceAll(':id', '{id}'),
     k = method + ' ' + p;
   const auth =
-    !p.startsWith('auth/otp/') && !['auth/refresh', 'health', 'ready', 'openapi.json'].includes(p);
+    !p.startsWith('auth/otp/') &&
+    p !== 'auth/beta/redeem' &&
+    !['auth/refresh', 'health', 'ready', 'openapi.json'].includes(p);
   const parameters = [];
   if (p.includes(':id')) parameters.push({ name: 'id', in: 'path', required: true, schema: uuid });
   if (p === 'bus/trips')
@@ -167,7 +174,7 @@ for (const m of source.matchAll(/@(Get|Post|Patch|Delete)\('([^']+)'\)/g)) {
       description: 'Local fixture-only sandbox access. Production provider not configured.',
     });
   let responseSchema = { type: 'object', additionalProperties: true };
-  if (['POST auth/otp/verify', 'POST auth/refresh'].includes(k))
+  if (['POST auth/beta/redeem', 'POST auth/otp/verify', 'POST auth/refresh'].includes(k))
     responseSchema = { $ref: '#/components/schemas/Tokens' };
   if (k === 'GET bus/trips/:id') responseSchema = { $ref: '#/components/schemas/BusTrip' };
   if (['GET bus/trips', 'GET crew/trips'].includes(k))
@@ -179,7 +186,7 @@ for (const m of source.matchAll(/@(Get|Post|Patch|Delete)\('([^']+)'\)/g)) {
       'GET shared-trips',
       'GET driver/shared-trips',
       'GET bookings',
-        'GET me/reservations',
+      'GET me/reservations',
       'GET driver/vehicles',
       'GET operator/audit',
     ].includes(k)

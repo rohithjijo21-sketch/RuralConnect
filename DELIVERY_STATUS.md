@@ -102,3 +102,7 @@ Runtime Wi-Fi server configuration, persistent local test backend and refreshed 
 ## Production foundation batch
 
 Production configuration validation, HTTPS transport restrictions, request correlation, response cache protection and bounded request bodies have been added. Android release signing is now configurable through protected environment variables, with HTTPS API validation and no debug-key fallback. Signed CI bundles use disposable test keys only. Production authentication remains deliberately disabled until a real approved provider and registration flow are integrated. This does not change the overall non-production-ready status.
+
+## Beta login decision — 19 October 2026
+
+SMS OTP is deferred by user direction until the first update of the real app. Owner-issued single-use invitations now provide an alternative for private beta sign-in across Passenger, Driver and Bus Crew. Codes expire, are stored as digests, and cannot grant operator/admin access or driver/vehicle approval. Backend integration passed; current published v0.2.0 APKs do not yet include this flow. Hosting, permanent signing and remaining device/product/operational checks remain open. See docs/operations/beta-login.md.
