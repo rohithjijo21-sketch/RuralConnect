@@ -1,0 +1,31 @@
+# Private beta only. Configure secrets in Render, never in this file.
+services:
+  - type: web
+    name: ruralconnect-beta-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./infrastructure/docker/Dockerfile.api
+    dockerContext: .
+    dockerCommand: node services/api/scripts/start-hosted.mjs
+    healthCheckPath: /v1/ready
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      - key: OTP_MODE
+        value: disabled
+      - key: PAYMENT_MODE
+        value: disabled
+      - key: BETA_AUTH_ENABLED
+        value: "true"
+      - key: REQUIRE_HTTPS
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_ORIGIN
+        sync: false
+      - key: TRUSTED_PROXY_CIDRS
+        sync: false
