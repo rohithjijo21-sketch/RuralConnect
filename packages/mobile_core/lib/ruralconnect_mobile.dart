@@ -45,10 +45,13 @@ class _AppState extends ConsumerState<RuralConnectApp> {
           title: widget.title,
           builder: (api, settings) => widget.mode == 'passenger'
               ? PassengerScreen(api: api, onConnectionSettings: settings)
-              : Home(
-                  mode: widget.mode,
-                  title: widget.title,
-                  onConnectionSettings: settings,
+              : ProviderScope(
+                  overrides: [apiProvider.overrideWithValue(api)],
+                  child: Home(
+                    mode: widget.mode,
+                    title: widget.title,
+                    onConnectionSettings: settings,
+                  ),
                 ),
         ),
       ),
@@ -125,7 +128,7 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
   Future<void> restore() async {
     try {
       await api.restore();
-      if (api.access != null) await load();
+      if (api.access != null || api.isDemo) await load();
     } catch (e) {
       if (mounted) setState(() => error = readableError(e));
     }
@@ -453,7 +456,7 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
   );
   @override
   Widget build(BuildContext context) {
-    final signedIn = api.access != null;
+    final signedIn = api.access != null || api.isDemo;
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -464,7 +467,7 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
               onPressed: widget.onConnectionSettings,
               icon: const Icon(Icons.dns_outlined),
             ),
-          if (signedIn)
+          if (signedIn && !api.isDemo)
             IconButton(
               tooltip: 'Sign out',
               icon: const Icon(Icons.logout),
@@ -489,6 +492,15 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            if (api.isDemo)
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'UI DEMO - Sample auto and service only. No real driver verification, availability, bookings or earnings. Connect to your server for real actions.',
+                  ),
+                ),
+              ),
             if (busy) const LinearProgressIndicator(),
             if (error != null)
               Card(

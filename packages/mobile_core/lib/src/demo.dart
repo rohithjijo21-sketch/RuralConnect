@@ -2,7 +2,8 @@ import 'api.dart';
 
 /// Read-only sample schedules. This never confirms a booking or creates a session.
 class DemoApi extends Api {
-  DemoApi() {
+  final String mode;
+  DemoApi({this.mode = 'passenger'}) {
     endpointConfirmed = true;
   }
   @override
@@ -26,7 +27,7 @@ class DemoApi extends Api {
       return {
         'name': '',
         'language': 'en',
-        'roles': ['PASSENGER'],
+        'roles': [mode == 'driver' ? 'DRIVER' : 'PASSENGER'],
       };
     }
     if (path.startsWith('/bus/trips?')) {
@@ -41,6 +42,36 @@ class DemoApi extends Api {
     }
     if (path.startsWith('/bus/trips/')) {
       return schedules.firstWhere((t) => t['id'] == path.split('/')[3]);
+    }
+    if (mode == 'driver' && path == '/driver/vehicles') {
+      return [
+        {
+          'id': 'sample-auto-1',
+          'registration': 'DEMO AUTO 001',
+          'category': 'AUTO',
+          'capacity': 3,
+          'approved': true,
+        },
+      ];
+    }
+    if (mode == 'driver' && path == '/driver/shared-trips') {
+      return [
+        {
+          'id': 'sample-shared-1',
+          'status': 'PUBLISHED',
+          'departure_at': DateTime.now()
+              .add(const Duration(hours: 1))
+              .toIso8601String(),
+          'capacity': 3,
+          'fare_paise': 2000,
+          'stops': [
+            {'name': 'Kothamangalam', 'sequence': 0},
+            {'name': 'Nellikuzhi', 'sequence': 1},
+            {'name': 'Muvattupuzha', 'sequence': 2},
+          ],
+          'reservations': [],
+        },
+      ];
     }
     if (path == '/bookings' || path == '/me/reservations') return [];
     if (path == '/shared-trips') return [];

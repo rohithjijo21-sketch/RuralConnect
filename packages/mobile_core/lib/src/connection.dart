@@ -26,7 +26,9 @@ class _ConnectionGateState extends State<ConnectionGate> {
   @override
   void initState() {
     super.initState();
-    if (kIsWeb && const bool.fromEnvironment('UI_DEMO')) demo = DemoApi();
+    if (kIsWeb && const bool.fromEnvironment('UI_DEMO')) {
+      demo = DemoApi(mode: widget.mode);
+    }
     restore();
   }
 
@@ -163,16 +165,21 @@ class _ConnectionGateState extends State<ConnectionGate> {
                       busy ? 'Checking server…' : 'Connect and continue',
                     ),
                   ),
-                  if (widget.mode == 'passenger' && !kReleaseMode) ...[
+                  if ((widget.mode == 'passenger' || widget.mode == 'driver') &&
+                      !kReleaseMode) ...[
                     const SizedBox(height: 12),
                     OutlinedButton(
                       onPressed: busy
                           ? null
-                          : () => setState(() => demo = DemoApi()),
+                          : () => setState(
+                              () => demo = DemoApi(mode: widget.mode),
+                            ),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(52),
                       ),
-                      child: Text('Explore passenger UI demo'),
+                      child: Text(
+                        'Explore ${widget.mode == 'driver' ? 'driver' : 'passenger'} UI demo',
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Text(
