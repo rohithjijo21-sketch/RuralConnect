@@ -35,3 +35,5 @@ This invalidates pending invitations and all existing sessions. It does not dele
 Integration covers provisioning, phone binding, concurrent single-use redemption, expiry, replacement, suspended/privileged account denial and unapproved-driver restrictions. Mobile tests cover role-specific invitation screens and rejected invitations without local success. Normal authorization, secure token storage and refresh rotation remain in place.
 
 This removes the SMS-provider dependency for supervised private beta participation. It does not complete hosting, privacy/deletion fulfilment, admin MFA, driver checks, real-device acceptance or the remaining transport workflows. It does not certify public production readiness. SMS verification remains planned for the first post-launch update.
+
+Authentication follow-up: OTP verification rejects outstanding sandbox challenges when disabled or in production. Owner revocation and invite redemption share the same account-first locking order. Disabled-OTP and concurrent-revocation regressions passed in embedded PostgreSQL integration; native CI confirmation for the follow-up is pending.

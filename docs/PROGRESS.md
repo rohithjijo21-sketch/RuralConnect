@@ -49,3 +49,7 @@ User approved proceeding toward production, with Android first. Hosting/domain/S
 ## SMS deferred; private beta invitations implemented
 
 19 October 2026: user deferred SMS OTP to the first update of the real app. Added explicit opt-in invitation login, trusted CLI provisioning/revocation, single-use code migration, phone-bound redemption and all-role mobile screens. No phone ownership verification is claimed; roles/approval/assignments remain server controlled. Existing development OTP is retained for local fixtures only. Public beta hosting and a new app release are still required. See docs/operations/beta-login.md.
+
+## Beta authentication hardening — 19 October 2026
+
+Disabled OTP verification now rejects even pre-existing, unexpired sandbox challenges; production cannot redeem them. Invitation redemption takes the account lock before the invite lock, matching owner issuance/revocation and preventing inconsistent concurrent session issuance. Added regression checks for disabled/production OTP redemption and concurrent invite redemption versus owner revocation. API typecheck and all three embedded PostgreSQL/PostGIS integration scenarios passed. Native CI verification for this follow-up remains pending. Hosting and other production gates are unchanged; no user notification or production-readiness claim is warranted.

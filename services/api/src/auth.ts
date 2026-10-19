@@ -3,9 +3,7 @@ import {
   UnauthorizedException,
   ForbiddenException,
   HttpException,
-  BadRequestException,
 } from '@nestjs/common';
-import { randomInt } from 'node:crypto';
 import { z } from 'zod';
 import { pool, transaction } from './db.js';
 import { hash, token, type Actor, type Role } from './domain.js';
@@ -55,6 +53,9 @@ export class Auth {
     };
   }
   async verify(challengeId: string, code: string, consentVersion: string) {
+    if (process.env.NODE_ENV === 'production' || process.env.OTP_MODE !== 'sandbox') {
+      throw new ForbiddenException('Sandbox OTP is disabled');
+    }
     const result = await transaction(async (db) => {
       const row = (
         await db.query('SELECT * FROM otp_challenges WHERE id=$1 FOR UPDATE', [challengeId])
@@ -93,10 +94,19 @@ export class Auth {
     await this.rate('beta-ip:' + hash(ip), 20, 3600);
     await this.rate('beta-phone:' + hash(phone), 10, 3600);
     const result = await transaction(async (db) => {
+      // Match the owner issue/revoke lock order: account first, invitation second.
+      // This also serializes revocation against session issuance.
+      const user = (
+        await db.query(
+          "SELECT u.id FROM users u WHERE u.phone=$1 AND NOT u.suspended AND u.deleted_at IS NULL AND EXISTS(SELECT 1 FROM user_roles r WHERE r.user_id=u.id AND r.role IN ('PASSENGER','DRIVER','BUS_CREW')) AND NOT EXISTS(SELECT 1 FROM user_roles r WHERE r.user_id=u.id AND r.role IN ('OPERATOR','ADMIN')) FOR UPDATE OF u",
+          [phone],
+        )
+      ).rows[0];
+      if (!user) return null;
       const row = (
         await db.query(
-          "SELECT i.id,i.user_id FROM beta_invites i JOIN users u ON u.id=i.user_id WHERE i.token_hash=$1 AND u.phone=$2 AND i.consumed_at IS NULL AND i.expires_at>now() AND NOT u.suspended AND u.deleted_at IS NULL AND EXISTS(SELECT 1 FROM user_roles r WHERE r.user_id=u.id AND r.role IN ('PASSENGER','DRIVER','BUS_CREW')) AND NOT EXISTS(SELECT 1 FROM user_roles r WHERE r.user_id=u.id AND r.role IN ('OPERATOR','ADMIN')) FOR UPDATE OF i,u",
-          [hash(code), phone],
+          'SELECT id,user_id FROM beta_invites WHERE user_id=$1 AND token_hash=$2 AND consumed_at IS NULL AND expires_at>now() FOR UPDATE',
+          [user.id, hash(code)],
         )
       ).rows[0];
       if (!row) return null;

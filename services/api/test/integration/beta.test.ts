@@ -43,6 +43,40 @@ test(
       return { status: r.status, data: (await r.json()) as any };
     }
     try {
+      // An outstanding development challenge must not survive disabling sandbox auth.
+      const legacySalt = token();
+      const legacy = (
+        await pool.query(
+          "INSERT INTO otp_challenges(phone,code_hash,expires_at) VALUES('+919000000001',$1,now()+interval '5 minutes') RETURNING id",
+          [legacySalt + ':' + hash(legacySalt + '123456')],
+        )
+      ).rows[0];
+      async function verifyLegacy() {
+        return fetch(base + '/auth/otp/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            challengeId: legacy.id,
+            code: '123456',
+            consentVersion: 'test-only',
+          }),
+        });
+      }
+      assert.equal((await verifyLegacy()).status, 403);
+      const originalNodeEnv = process.env.NODE_ENV;
+      try {
+        process.env.NODE_ENV = 'production';
+        process.env.OTP_MODE = 'sandbox';
+        assert.equal((await verifyLegacy()).status, 403);
+      } finally {
+        process.env.NODE_ENV = originalNodeEnv;
+        process.env.OTP_MODE = 'disabled';
+      }
+      assert.equal(
+        (await pool.query('SELECT consumed FROM otp_challenges WHERE id=$1', [legacy.id])).rows[0]
+          .consumed,
+        false,
+      );
       const phone = '+919000000011';
       const invite = await issue(phone, 'PASSENGER');
       assert.equal((await redeem('+919000000012', invite)).status, 401);
@@ -120,6 +154,32 @@ test(
           .status,
         401,
       );
+      // Concurrent owner revocation and redemption must leave no usable session.
+      const racePhone = '+919000000015',
+        raceCode = await issue(racePhone, 'PASSENGER');
+      const racingRevoke = spawn(
+        process.execPath,
+        ['--import', 'tsx', 'scripts/beta-revoke.ts', racePhone],
+        { cwd: new URL('../..', import.meta.url), env: process.env, stdio: 'ignore' },
+      );
+      const [racingLogin, revocationCode] = await Promise.all([
+        redeem(racePhone, raceCode),
+        new Promise((resolve) => {
+          racingRevoke.on('error', () => resolve(-1));
+          racingRevoke.on('exit', resolve);
+        }),
+      ]);
+      assert.equal(revocationCode, 0);
+      assert.ok([201, 401].includes(racingLogin.status));
+      if (racingLogin.status === 201)
+        assert.equal(
+          (
+            await fetch(base + '/me', {
+              headers: { Authorization: 'Bearer ' + racingLogin.data.accessToken },
+            })
+          ).status,
+          401,
+        );
       process.env.BETA_AUTH_ENABLED = 'false';
       assert.equal((await redeem(phone, token())).status, 403);
     } finally {
