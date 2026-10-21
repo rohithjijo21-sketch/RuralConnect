@@ -14,18 +14,18 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: "3001"
+        value: '3001'
       - key: OTP_MODE
         value: disabled
       - key: PAYMENT_MODE
         value: disabled
       - key: BETA_AUTH_ENABLED
-        value: "true"
+        value: 'true'
       - key: REQUIRE_HTTPS
-        value: "true"
+        value: 'true'
+      - key: INGRESS_MODE
+        value: render
       - key: DATABASE_URL
         sync: false
       - key: ADMIN_ORIGIN
-        sync: false
-      - key: TRUSTED_PROXY_CIDRS
         sync: false

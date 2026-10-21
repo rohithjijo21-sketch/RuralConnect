@@ -1,7 +1,8 @@
 # Hosted private beta
 
 The owner authorized internet-accessible beta hosting on 19 October 2026.
-Account connections are still required; no hosted URL has been provisioned or verified.
+The beta API is deployed at https://ruralconnect-beta-api.onrender.com/v1.
+Hosting checks below passed on 21 October; real-device and complete app acceptance remain open.
 
 ## Deployment configuration
 
@@ -18,8 +19,9 @@ Before applying the blueprint:
    `sslmode=verify-full`. Never copy the URL into Git, screenshots or chat.
 4. Set `ADMIN_ORIGIN` to the actual API HTTPS origin while no admin website is
    deployed. Native Android clients do not require a browser origin allowance.
-5. Obtain and verify actual ingress proxy addresses/CIDRs before setting
-   `TRUSTED_PROXY_CIDRS`. Do not use wildcard trust, guessed ranges, or disable HTTPS.
+5. On Render Free use `INGRESS_MODE=render`, guarded by Render's runtime metadata.
+   Do not add competing `TRUSTED_PROXY_CIDRS` values. Other hosts retain explicit
+   trusted ingress addresses; do not guess ranges or disable HTTPS.
 
 The hosted startup validates production configuration, runs transactional locked
 migrations, and starts the API only on success. It never runs demo seeds.
@@ -53,3 +55,5 @@ Neon project steep-recipe-63187389 / branch br-icy-brook-b3f8o1wi exists in Sing
 ## 21 October first deployment
 
 User approved public free beta deployment. Render service srv-dbc4us3bc2fs73bakp30 was created with manual deployments in Singapore. First deploy a6c8bab is live at https://ruralconnect-beta-api.onrender.com. HTTPS health and database readiness returned 200. Protected requests initially returned 400 because managed ingress terminates TLS. An explicit INGRESS_MODE=render adapter follows Render's immediate-hop proxy guidance, requires RENDER=true and a valid RENDER_SERVICE_ID, and cannot mix with CIDR overrides. Other hosts keep the explicit address policy. The free service has no private-network ingress; confirm forwarded-header behavior after deployment. Admin CORS origin currently uses an intentionally non-routable HTTPS origin because no browser admin portal is deployed. Source: https://render.com/articles/how-to-implement-authentication-and-authorization . Beta device/login acceptance remains outstanding.
+
+Verified hosted source 7a8d09c: health 200, readiness 200, unauthenticated /me 401, disabled OTP 403, invalid invite 401, role-injection body 400, HTTP edge redirect 301 to HTTPS. The second deployment successfully reused existing migrations. No real tester invitation was issued, and no real-device or full booking flow is claimed. Local backend build and 13 unit tests passed.
