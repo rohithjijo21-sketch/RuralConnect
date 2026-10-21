@@ -26,6 +26,7 @@ import helmet from 'helmet';
 import { WebSocketServer, WebSocket } from 'ws';
 import { Auth, phoneSchema } from './auth.js';
 import { Bus } from './bus.js';
+import { BusOwner } from './bus-owner.js';
 import { Bookings } from './bookings.js';
 import { pool } from './db.js';
 import { busStates } from './domain.js';
@@ -78,6 +79,7 @@ class Api {
     @Inject(Auth) private auth: Auth,
     @Inject(Bus) private bus: Bus,
     @Inject(Bookings) private bookings: Bookings,
+    @Inject(BusOwner) private owner: BusOwner,
   ) {}
   @Get('openapi.json') async spec() {
     return JSON.parse(
@@ -91,7 +93,7 @@ class Api {
     return { status: 'ok' };
   }
   @Get('ready') async ready() {
-    const r = await pool.query("SELECT 1 FROM schema_migrations WHERE name='003_beta_invites.sql'");
+    const r = await pool.query("SELECT 1 FROM schema_migrations WHERE name='004_bus_owner.sql'");
     if (!r.rowCount) throw new HttpException('Migrations required', 503);
     return { status: 'ready' };
   }
@@ -274,6 +276,62 @@ class Api {
         [t, cursor],
       )
     ).rows;
+  }
+  @Get('bus-owner/workspace') ownerWorkspace(@Headers('authorization') h: string) {
+    return this.auth.actor(h).then((a) => this.owner.workspace(a));
+  }
+  @Post('bus-owner/apply') async ownerApply(
+    @Headers('authorization') h: string,
+    @Body() b: unknown,
+  ) {
+    const v = z.object({ name: short }).strict().parse(b);
+    return this.owner.register(await this.auth.actor(h), v.name);
+  }
+  @Post('bus-owner/vehicles') async ownerVehicle(
+    @Headers('authorization') h: string,
+    @Body() b: unknown,
+  ) {
+    const v = z
+      .object({
+        registration: z
+          .string()
+          .trim()
+          .min(4)
+          .max(24)
+          .regex(/^[A-Za-z0-9 -]+$/),
+        capacity: z.number().int().min(1).max(100),
+      })
+      .strict()
+      .parse(b);
+    return this.owner.vehicle(await this.auth.actor(h), v.registration, v.capacity);
+  }
+  @Post('bus-owner/plans') async ownerPlan(
+    @Headers('authorization') h: string,
+    @Body() b: unknown,
+  ) {
+    const v = z
+      .object({
+        name: short,
+        routeVersionId: uuid,
+        vehicleId: uuid,
+        crewId: uuid,
+        departureTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+        startDate: z.iso.date(),
+        endDate: z.iso.date(),
+        weekdays: z.array(z.number().int().min(1).max(7)).min(1).max(7),
+        excludedDates: z.array(z.iso.date()).max(366),
+      })
+      .strict()
+      .parse(b);
+    return this.owner.plan(await this.auth.actor(h), v);
+  }
+  @Post('bus-owner/plans/:id/publish') async ownerPublish(
+    @Headers('authorization') h: string,
+    @Param('id') p: string,
+    @Body() b: unknown,
+  ) {
+    const v = z.object({ fromDate: z.iso.date(), toDate: z.iso.date() }).strict().parse(b);
+    return this.owner.publish(await this.auth.actor(h), id(p), v.fromDate, v.toDate);
   }
   @Get('operator/resources') async resources(
     @Headers('authorization') h: string,
@@ -531,7 +589,7 @@ class Api {
     return this.bookings.cash(await this.auth.actor(h), id(t), key(k));
   }
 }
-@Module({ controllers: [Api], providers: [Auth, Bus, Bookings] })
+@Module({ controllers: [Api], providers: [Auth, Bus, Bookings, BusOwner] })
 class App {}
 export async function bootstrap(port = Number(process.env.PORT ?? 3001)) {
   const config = runtimeConfig();

@@ -15,6 +15,7 @@ import 'src/live_socket.dart';
 import 'src/api.dart';
 import 'src/connection.dart';
 import 'src/passenger.dart';
+import 'src/bus_owner.dart';
 export 'src/passenger.dart';
 export 'src/demo.dart';
 export 'src/api.dart';
@@ -605,6 +606,14 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
                 }),
               ],
               if (widget.mode == 'bus') ...[
+                button('Owner setup · buses, routes and timetables', () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => BusOwnerScreen(api: api),
+                    ),
+                  );
+                  await load();
+                }),
                 Text(
                   ml ? 'ഇന്നത്തെ സർവീസുകൾ' : 'Assigned services',
                   style: Theme.of(context).textTheme.headlineMedium,

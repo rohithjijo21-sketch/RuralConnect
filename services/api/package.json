@@ -14,7 +14,8 @@
     "test:embedded": "node scripts/test-embedded.mjs",
     "dev:phone": "node scripts/dev-phone.mjs",
     "beta:invite": "node --env-file=../../.env --import tsx scripts/beta-invite.ts",
-    "beta:revoke": "node --env-file=../../.env --import tsx scripts/beta-revoke.ts"
+    "beta:revoke": "node --env-file=../../.env --import tsx scripts/beta-revoke.ts",
+    "bus:review": "node --env-file=../../.env --import tsx scripts/bus-review.ts"
   },
   "dependencies": {
     "@nestjs/common": "12.1.3",

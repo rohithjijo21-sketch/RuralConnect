@@ -1,6 +1,6 @@
 name: ruralconnect_driver
 publish_to: none
-version: 0.3.0+3
+version: 0.4.0+4
 environment:
   sdk: '>=3.8.0 <4.0.0'
 dependencies:

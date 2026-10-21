@@ -13,6 +13,16 @@ export class Bus {
   async operator(db: PoolClient, actor: Actor, operatorId: string) {
     if (actor.roles.includes('ADMIN')) return;
     if (
+      actor.roles.includes('BUS_CREW') &&
+      (
+        await db.query(
+          "SELECT 1 FROM bus_owners b JOIN operators o ON o.id=b.operator_id WHERE b.user_id=$1 AND b.operator_id=$2 AND b.status='APPROVED' AND o.verified",
+          [actor.id, operatorId],
+        )
+      ).rowCount
+    )
+      return;
+    if (
       !actor.roles.includes('OPERATOR') ||
       !(
         await db.query('SELECT 1 FROM operator_members WHERE operator_id=$1 AND user_id=$2', [
@@ -26,6 +36,13 @@ export class Bus {
   async authorized(db: PoolClient, actor: Actor, trip: any) {
     const op =
       actor.roles.includes('ADMIN') ||
+      (actor.roles.includes('BUS_CREW') &&
+        !!(
+          await db.query(
+            "SELECT 1 FROM bus_owners b JOIN operators o ON o.id=b.operator_id WHERE b.user_id=$1 AND b.operator_id=$2 AND b.status='APPROVED' AND o.verified",
+            [actor.id, trip.operator_id],
+          )
+        ).rowCount) ||
       (actor.roles.includes('OPERATOR') &&
         !!(
           await db.query('SELECT 1 FROM operator_members WHERE operator_id=$1 AND user_id=$2', [
@@ -177,7 +194,17 @@ export class Bus {
     },
   ) {
     return transaction(async (db) => {
-      await this.operator(db, actor, input.operatorId);
+      const setupOwner =
+        actor.roles.includes('BUS_CREW') &&
+        (
+          await db.query(
+            "SELECT 1 FROM bus_owners WHERE user_id=$1 AND operator_id=$2 AND status IN ('PENDING','APPROVED')",
+            [actor.id, input.operatorId],
+          )
+        ).rowCount;
+      if (!setupOwner) await this.operator(db, actor, input.operatorId);
+      if (!input.stops.length || input.stops[0].offsetMinutes !== 0)
+        throw new BadRequestException('The first stop must have a zero minute offset');
       for (let i = 1; i < input.stops.length; i++)
         if (input.stops[i].offsetMinutes <= input.stops[i - 1].offsetMinutes)
           throw new BadRequestException('Stop offsets must increase');
@@ -220,10 +247,27 @@ export class Bus {
       crewId: string;
       departureAt: string;
       serviceDate: string;
+      planId?: string;
     },
   ) {
     return transaction(async (db) => {
       await this.operator(db, actor, input.operatorId);
+      if (input.planId) {
+        const plan = (
+          await db.query(
+            'SELECT id FROM bus_service_plans WHERE id=$1 AND operator_id=$2 FOR UPDATE',
+            [input.planId, input.operatorId],
+          )
+        ).rows[0];
+        if (!plan) throw new ForbiddenException();
+        const existing = (
+          await db.query(
+            'SELECT t.* FROM bus_plan_instances i JOIN trip_instances t ON t.id=i.trip_id WHERE i.plan_id=$1 AND i.service_date=$2',
+            [input.planId, input.serviceDate],
+          )
+        ).rows[0];
+        if (existing) return existing;
+      }
       const serviceDate = (
         await db.query("SELECT ($1::timestamptz AT TIME ZONE 'Asia/Kolkata')::date::text d", [
           input.departureAt,
@@ -266,6 +310,11 @@ export class Bus {
         [actor.id, input.operatorId, t.id],
       );
       await this.event(db, t, 'bus.created.v1', { tripId: t.id, status: t.status });
+      if (input.planId)
+        await db.query(
+          'INSERT INTO bus_plan_instances(plan_id,service_date,trip_id) VALUES($1,$2,$3)',
+          [input.planId, input.serviceDate, t.id],
+        );
       return t;
     });
   }
