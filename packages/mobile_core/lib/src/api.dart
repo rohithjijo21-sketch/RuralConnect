@@ -48,7 +48,7 @@ class Api {
                 defaultValue: '',
               ),
               connectTimeout: const Duration(seconds: 10),
-              receiveTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 75),
             ),
           ),
       storage = secureStorage ?? const FlutterSecureStorage();
@@ -115,7 +115,7 @@ class Api {
       BaseOptions(
         baseUrl: url,
         connectTimeout: const Duration(seconds: 8),
-        receiveTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 75),
       ),
     );
     try {

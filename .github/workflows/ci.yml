@@ -58,7 +58,7 @@ jobs:
             flutter pub get --enforce-lockfile
             flutter analyze
             flutter test
-            flutter build apk --debug --dart-define=BETA_AUTH=true
+            flutter build apk --debug --dart-define=BETA_AUTH=true --dart-define=API_URL=https://ruralconnect-beta-api.onrender.com/v1
           done
       - name: Verify signed release bundles with disposable CI credentials
         shell: bash
