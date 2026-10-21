@@ -32,6 +32,18 @@ export function runtimeConfig(env: NodeJS.ProcessEnv = process.env) {
     .split(',')
     .map((v) => v.trim())
     .filter(Boolean);
+  const renderIngress = env.INGRESS_MODE === 'render';
+  if (env.INGRESS_MODE && !renderIngress) throw Error('Unknown INGRESS_MODE');
+  if (
+    renderIngress &&
+    (!production ||
+      env.RENDER !== 'true' ||
+      !/^srv-[a-z0-9]+$/.test(env.RENDER_SERVICE_ID ?? '') ||
+      trustedProxies.length)
+  )
+    throw Error(
+      'Render ingress requires the Render production runtime and no competing proxy ranges',
+    );
   if (
     trustedProxies.some((value) => {
       const [ip, prefix, extra] = value.split('/');
@@ -70,6 +82,7 @@ export function runtimeConfig(env: NodeJS.ProcessEnv = process.env) {
     port,
     adminOrigin,
     trustedProxies,
+    renderIngress,
     requireHttps: production || env.REQUIRE_HTTPS === 'true',
   };
 }

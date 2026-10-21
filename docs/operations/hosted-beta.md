@@ -45,3 +45,11 @@ not verified production readiness. SMS remains deferred to the first app update.
 
 References: https://render.com/docs/free, https://render.com/docs/blueprint-spec,
 https://neon.com/pricing.
+
+## 20 October deployment checkpoint
+
+Neon project steep-recipe-63187389 / branch br-icy-brook-b3f8o1wi exists in Singapore on the confirmed Free plan. The owner approved transferring its credential into Render. The Render creation form is prepared (not submitted), with Free Docker compute, manual deploys, guarded migration startup and /v1/ready checks. Final browser confirmation for internet exposure is pending. No service URL or successful hosted migration is claimed. Ingress proxy verification remains open; no unrestricted proxy trust is configured. The latest source a6c8bab and authentication hardening 8f9cd61 both passed complete GitHub CI. Credentials are not recorded here.
+
+## 21 October first deployment
+
+User approved public free beta deployment. Render service srv-dbc4us3bc2fs73bakp30 was created with manual deployments in Singapore. First deploy a6c8bab is live at https://ruralconnect-beta-api.onrender.com. HTTPS health and database readiness returned 200. Protected requests initially returned 400 because managed ingress terminates TLS. An explicit INGRESS_MODE=render adapter follows Render's immediate-hop proxy guidance, requires RENDER=true and a valid RENDER_SERVICE_ID, and cannot mix with CIDR overrides. Other hosts keep the explicit address policy. The free service has no private-network ingress; confirm forwarded-header behavior after deployment. Admin CORS origin currently uses an intentionally non-routable HTTPS origin because no browser admin portal is deployed. Source: https://render.com/articles/how-to-implement-authentication-and-authorization . Beta device/login acceptance remains outstanding.

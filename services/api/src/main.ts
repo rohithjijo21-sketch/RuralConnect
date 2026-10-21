@@ -541,7 +541,12 @@ export async function bootstrap(port = Number(process.env.PORT ?? 3001)) {
   );
   const express = app.getHttpAdapter().getInstance();
   express.disable('x-powered-by');
-  express.set('trust proxy', config.trustedProxies.length ? config.trustedProxies : false);
+  // Render's managed ingress terminates TLS and is the sole network entry point
+  // for this Free web service. Trust only the immediate hop, per Render guidance.
+  express.set(
+    'trust proxy',
+    config.renderIngress ? 1 : config.trustedProxies.length ? config.trustedProxies : false,
+  );
   app.use((req: any, res: any, next: any) => {
     const requestId = randomUUID();
     req.requestId = requestId;
@@ -584,7 +589,8 @@ export async function bootstrap(port = Number(process.env.PORT ?? 3001)) {
   app.getHttpServer().on('upgrade', async (req: any, socket: any, head: any) => {
     try {
       const forwarded =
-        config.trustedProxies.length && express.get('trust proxy fn')(socket.remoteAddress, 0);
+        (config.renderIngress || config.trustedProxies.length > 0) &&
+        express.get('trust proxy fn')(socket.remoteAddress, 0);
       if (
         config.requireHttps &&
         !socket.encrypted &&

@@ -43,3 +43,23 @@ test('development retains Wi-Fi sandbox access without trusting forwarded header
   assert.equal(c.requireHttps, false);
   assert.deepEqual(c.trustedProxies, []);
 });
+test('Render ingress is opt-in and restricted to the provider production runtime', () => {
+  const render = {
+    ...valid,
+    TRUSTED_PROXY_CIDRS: '',
+    INGRESS_MODE: 'render',
+    RENDER: 'true',
+    RENDER_SERVICE_ID: 'srv-test123',
+  };
+  assert.equal(runtimeConfig(render).renderIngress, true);
+  assert.equal(runtimeConfig(valid).renderIngress, false);
+  for (const patch of [
+    { RENDER: '' },
+    { RENDER_SERVICE_ID: '' },
+    { NODE_ENV: 'development' },
+    { TRUSTED_PROXY_CIDRS: '10.0.0.1' },
+    { INGRESS_MODE: 'anything' },
+  ]) {
+    assert.throws(() => runtimeConfig({ ...render, ...patch }));
+  }
+});
