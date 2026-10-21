@@ -27,7 +27,29 @@ class DemoApi extends Api {
       return {
         'name': '',
         'language': 'en',
-        'roles': [mode == 'driver' ? 'DRIVER' : 'PASSENGER'],
+        'roles': [
+          mode == 'driver'
+              ? 'DRIVER'
+              : mode == 'bus'
+              ? 'BUS_CREW'
+              : 'PASSENGER',
+        ],
+      };
+    }
+    if (mode == 'bus' && path == '/crew/trips') return schedules;
+    if (mode == 'bus' && path == '/bus-owner/workspace') {
+      return {
+        'owner': {
+          'name': 'DEMO · Bus business',
+          'operator_id': 'sample-operator',
+          'status': 'PENDING',
+        },
+        'vehicles': [
+          {'registration': 'DEMO BUS 001', 'capacity': 30, 'approved': false},
+        ],
+        'routes': [],
+        'plans': [],
+        'crew': [],
       };
     }
     if (path.startsWith('/bus/trips?')) {
@@ -65,9 +87,14 @@ class DemoApi extends Api {
           'capacity': 3,
           'fare_paise': 2000,
           'stops': [
-            {'name': 'Kothamangalam', 'sequence': 0},
-            {'name': 'Nellikuzhi', 'sequence': 1},
-            {'name': 'Muvattupuzha', 'sequence': 2},
+            {
+              'name': 'Kothamangalam',
+              'sequence': 0,
+              'lat': 10.05,
+              'lng': 76.62,
+            },
+            {'name': 'Nellikuzhi', 'sequence': 1, 'lat': 10.085, 'lng': 76.58},
+            {'name': 'Muvattupuzha', 'sequence': 2, 'lat': 10.12, 'lng': 76.54},
           ],
           'reservations': [],
         },
@@ -131,7 +158,17 @@ class DemoApi extends Api {
       'lat': null,
       'lng': null,
       'delay_minutes': 0,
-      'stops': stops,
+      'stops': stops
+          .asMap()
+          .entries
+          .map(
+            (entry) => {
+              ...entry.value,
+              'lat': 10.05 + entry.key * .035,
+              'lng': 76.62 - entry.key * .04,
+            },
+          )
+          .toList(),
       'timeSource': 'SCHEDULED',
     };
   }

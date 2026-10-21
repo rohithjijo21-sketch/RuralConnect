@@ -98,7 +98,22 @@ test(
       accuracyM: 10,
       recordedAt: new Date().toISOString(),
     });
-    assert.equal((await bus.detail(service.id)).locationQuality, 'LIVE');
+    const detail = await bus.detail(service.id);
+    assert.equal(detail.locationQuality, 'LIVE');
+    assert.equal(detail.stops.length, 2);
+    assert.equal(detail.stops[0].lat, 10);
+    assert.equal(detail.stops[1].lng, 76);
+    const searched = await bus.search(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date()),
+      'A',
+      'B',
+    );
+    assert.equal(searched.find((t) => t.id === service.id)?.stops[0].lat, 10);
     await bus.status(crew, service.id, {
       status: 'DELAYED',
       reason: 'Traffic',

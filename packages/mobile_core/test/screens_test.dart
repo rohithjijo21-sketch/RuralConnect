@@ -124,6 +124,7 @@ void main() {
         find.widgetWithText(TextField, 'Local sandbox access key'),
         'fixture-key',
       );
+      await tester.ensureVisible(find.text('Request sandbox challenge'));
       await tester.tap(find.text('Request sandbox challenge'));
       await tester.pumpAndSettle();
       expect(find.text('Configured six-digit OTP'), findsOneWidget);
@@ -143,15 +144,6 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       expect(find.text('Fixture Kerala bus'), findsOneWidget);
-      await tester.scrollUntilVisible(
-        find.textContaining('Browse without GPS permission'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      expect(
-        find.textContaining('Browse without GPS permission'),
-        findsOneWidget,
-      );
       expect(
         api.requests.any((r) => r['path'].toString().contains('/location')),
         isFalse,

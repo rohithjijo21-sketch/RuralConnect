@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'live_socket.dart';
 import 'api.dart';
+import 'journey_map.dart';
+import 'design.dart';
 
 const forest = Color(0xFF14634D);
 
@@ -303,39 +305,8 @@ class _PassengerScreenState extends State<PassengerScreen> {
       seedColor: forest,
       brightness: dark ? Brightness.dark : Brightness.light,
     );
-    final bg = dark ? const Color(0xFF101E19) : const Color(0xFFF5F7F2);
     return Theme(
-      data: ThemeData(
-        useMaterial3: true,
-        colorScheme: palette,
-        scaffoldBackgroundColor: bg,
-        appBarTheme: AppBarTheme(
-          backgroundColor: bg,
-          surfaceTintColor: Colors.transparent,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: palette.surface,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: palette.outlineVariant),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 15,
-          ),
-        ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            backgroundColor: forest,
-            foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-        ),
-      ),
+      data: ruralTheme(brightness: dark ? Brightness.dark : Brightness.light),
       child: Builder(
         builder: (context) {
           if (!browsing) return login(context);
@@ -370,7 +341,7 @@ class _PassengerScreenState extends State<PassengerScreen> {
                 IconButton(
                   tooltip: 'Server connection settings',
                   onPressed: widget.onConnectionSettings,
-                  icon: const Icon(Icons.settings_ethernet_rounded),
+                  icon: const Icon(Icons.tune_rounded),
                 ),
                 const SizedBox(width: 8),
               ],
@@ -596,36 +567,53 @@ class _PassengerScreenState extends State<PassengerScreen> {
   List<Widget> home(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return [
-      const SizedBox(height: 24),
-      Row(
-        children: [
-          Icon(Icons.location_on_outlined, color: colors.primary, size: 18),
-          const SizedBox(width: 5),
-          Text(
-            'KERALA  /  MANUAL STOP SEARCH',
-            style: TextStyle(
-              color: colors.onSurfaceVariant,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1,
-            ),
-          ),
-        ],
-      ),
       const SizedBox(height: 12),
       Text(
-        name.isEmpty
-            ? 'Your next stop,\ncloser to home.'
-            : 'Hi, ${name.split(' ').first}.\nWhere to today?',
-        style: TextStyle(
-          fontSize: 32,
-          height: 1.13,
-          fontWeight: FontWeight.w800,
+        name.isEmpty ? 'Where to?' : 'Where to, ${name.split(' ').first}?',
+        style: const TextStyle(
+          fontSize: 30,
+          fontWeight: FontWeight.w700,
           letterSpacing: -1,
-          color: colors.onSurface,
         ),
       ),
-      const SizedBox(height: 18),
+      const SizedBox(height: 16),
+      if (api.isDemo)
+        const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text(
+            'Sample map stops · Not actual boarding points',
+            style: TextStyle(fontSize: 12),
+          ),
+        ),
+      SizedBox(
+        height: 260,
+        child: JourneyMap(
+          compact: true,
+          refreshPins: api.isDemo
+              ? null
+              : () async => servicePins(
+                  await api.request('/bus/trips?date=$today') as List,
+                ),
+          pins: servicePins(
+            buses,
+            live: !offline && !api.isDemo,
+            onTrip: (t) {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => BusDetail(
+                    api: api,
+                    initial: Map<String, dynamic>.from(t),
+                  ),
+                ),
+              );
+            },
+          ),
+          emptyLabel: offline
+              ? 'Offline · Live locations unavailable'
+              : 'Published stops and active buses appear here.',
+        ),
+      ),
+      const SizedBox(height: 16),
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -663,7 +651,12 @@ class _PassengerScreenState extends State<PassengerScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            TextButton.icon(
+              onPressed: buses.isEmpty ? null : chooseStops,
+              icon: const Icon(Icons.map_outlined),
+              label: const Text('Choose stops on map'),
+            ),
+            const SizedBox(height: 8),
             FilledButton.icon(
               onPressed: busy
                   ? null
@@ -776,28 +769,21 @@ class _PassengerScreenState extends State<PassengerScreen> {
         ),
       if (transport == 1)
         for (final t in shared) sharedCard(context, t as Map),
-      const SizedBox(height: 16),
-      Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: colors.primaryContainer.withValues(alpha: .5),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.location_off_outlined, color: colors.primary),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Browse without GPS permission. Choose your stops manually and keep location sharing in your control.',
-                style: TextStyle(fontSize: 12, height: 1.5),
-              ),
-            ),
-          ],
+    ];
+  }
+
+  Future<void> chooseStops() async {
+    final result = await Navigator.of(context).push<List<String>>(
+      MaterialPageRoute(
+        builder: (_) => PublishedStopPicker(
+          pins: servicePins(buses).where((p) => !p.vehicle).toList(),
         ),
       ),
-    ];
+    );
+    if (result == null || !mounted) return;
+    origin.text = result[0];
+    destination.text = result[1];
+    await run(load);
   }
 
   Widget modeTile(
@@ -1355,6 +1341,20 @@ class _BusDetailState extends State<BusDetail> {
               'UI DEMO · Sample timetable. No real vehicle tracking.',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
+          SizedBox(
+            height: 300,
+            child: JourneyMap(
+              compact: true,
+              refreshPins: widget.api.isDemo
+                  ? null
+                  : () async => servicePins([
+                      await widget.api.request('/bus/trips/${trip['id']}'),
+                    ]),
+              pins: servicePins([
+                trip,
+              ], live: error == null && !widget.api.isDemo),
+            ),
+          ),
           const SizedBox(height: 16),
           Text(
             trip['route_name'].toString(),
@@ -1367,31 +1367,10 @@ class _BusDetailState extends State<BusDetail> {
           Text('Scheduled departure: ${timeText(trip['departure_at'])}'),
           Text('Reported delay: ${trip['delay_minutes']} min'),
           const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: c.primaryContainer,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'GPS: ${error != null ? 'UNAVAILABLE' : trip['locationQuality']}',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                Text(
-                  'Last reported: ${trip['recorded_at'] ?? 'No position received'}',
-                ),
-                if (error == null &&
-                    trip['locationQuality'] == 'LIVE' &&
-                    trip['lat'] != null)
-                  Text('${trip['lat']}, ${trip['lng']}'),
-                const Text(
-                  'Arrival estimate unavailable. Scheduled information is shown separately.',
-                ),
-              ],
-            ),
+          Text(
+            error == null && servicePins([trip]).any((p) => p.vehicle)
+                ? 'Live bus location is shown on the map.'
+                : 'Live location unavailable · Scheduled times shown.',
           ),
           if (error != null) Text(error!, style: TextStyle(color: c.error)),
           const SizedBox(height: 24),

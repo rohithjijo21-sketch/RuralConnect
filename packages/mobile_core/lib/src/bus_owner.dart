@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'api.dart';
+import 'journey_map.dart';
+import 'package:latlong2/latlong.dart';
 
 String busDate(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -59,7 +61,7 @@ class _BusOwnerState extends State<BusOwnerScreen> {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Bus owner workspace'),
+          title: const Text('Your bus business'),
           actions: [
             IconButton(
               onPressed: busy ? null : () => run(load),
@@ -417,6 +419,21 @@ class _BusSetupFormState extends State<BusSetupForm> {
       validator: (v) => v == null ? 'Choose an option' : null,
     ),
   );
+  Future<void> pickStop(int i) async {
+    final p = await Navigator.of(context).push<LatLng>(
+      MaterialPageRoute(
+        builder: (_) => MapLocationPicker(
+          initial: mapPoint(stops[i][1].text, stops[i][2].text),
+        ),
+      ),
+    );
+    if (p == null || !mounted) return;
+    setState(() {
+      stops[i][1].text = p.latitude.toStringAsFixed(6);
+      stops[i][2].text = p.longitude.toStringAsFixed(6);
+    });
+  }
+
   Future<void> gps(int i) async {
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
@@ -463,6 +480,9 @@ class _BusSetupFormState extends State<BusSetupForm> {
           };
           break;
         case 'route':
+          if (stops.any((s) => mapPoint(s[1].text, s[2].text) == null)) {
+            throw StateError('Choose a map location for every stop.');
+          }
           path = '/operator/routes';
           body = {
             'operatorId': widget.workspace['owner']['operator_id'],
@@ -603,48 +623,64 @@ class _BusSetupFormState extends State<BusSetupForm> {
                             ],
                           ),
                           text(stops[i][0], 'Stop name'),
-                          Row(
+                          OutlinedButton.icon(
+                            onPressed: busy ? null : () => pickStop(i),
+                            icon: const Icon(Icons.map_outlined),
+                            label: Text(
+                              stops[i][1].text.isEmpty
+                                  ? 'Choose location on map'
+                                  : 'Location chosen · Change',
+                            ),
+                          ),
+                          ExpansionTile(
+                            title: const Text('Enter coordinates manually'),
+                            initiallyExpanded: false,
+                            maintainState: true,
                             children: [
-                              Expanded(
-                                child: text(
-                                  stops[i][1],
-                                  'Latitude',
-                                  keyboard:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                        signed: true,
-                                      ),
-                                  validate: (v) {
-                                    final n = double.tryParse(v);
-                                    return n == null ||
-                                            !n.isFinite ||
-                                            n < -90 ||
-                                            n > 90
-                                        ? 'Invalid latitude'
-                                        : null;
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: text(
-                                  stops[i][2],
-                                  'Longitude',
-                                  keyboard:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                        signed: true,
-                                      ),
-                                  validate: (v) {
-                                    final n = double.tryParse(v);
-                                    return n == null ||
-                                            !n.isFinite ||
-                                            n < -180 ||
-                                            n > 180
-                                        ? 'Invalid longitude'
-                                        : null;
-                                  },
-                                ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: text(
+                                      stops[i][1],
+                                      'Latitude',
+                                      keyboard:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                            signed: true,
+                                          ),
+                                      validate: (v) {
+                                        final n = double.tryParse(v);
+                                        return n == null ||
+                                                !n.isFinite ||
+                                                n < -90 ||
+                                                n > 90
+                                            ? 'Invalid latitude'
+                                            : null;
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: text(
+                                      stops[i][2],
+                                      'Longitude',
+                                      keyboard:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                            signed: true,
+                                          ),
+                                      validate: (v) {
+                                        final n = double.tryParse(v);
+                                        return n == null ||
+                                                !n.isFinite ||
+                                                n < -180 ||
+                                                n > 180
+                                            ? 'Invalid longitude'
+                                            : null;
+                                      },
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),

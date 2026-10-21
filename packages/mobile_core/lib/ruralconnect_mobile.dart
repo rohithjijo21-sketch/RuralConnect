@@ -16,6 +16,9 @@ import 'src/api.dart';
 import 'src/connection.dart';
 import 'src/passenger.dart';
 import 'src/bus_owner.dart';
+import 'src/journey_map.dart';
+import 'src/design.dart';
+import 'package:latlong2/latlong.dart';
 export 'src/passenger.dart';
 export 'src/demo.dart';
 export 'src/api.dart';
@@ -71,18 +74,8 @@ class _AppState extends ConsumerState<RuralConnectApp> {
     routerConfig: router,
     supportedLocales: const [Locale('en'), Locale('ml')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    theme: ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: widget.color),
-      cardTheme: const CardThemeData(margin: EdgeInsets.symmetric(vertical: 8)),
-    ),
-    darkTheme: ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: widget.color,
-        brightness: Brightness.dark,
-      ),
-    ),
+    theme: ruralTheme(),
+    darkTheme: ruralTheme(brightness: Brightness.dark),
   );
 }
 
@@ -118,6 +111,8 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
   String cursor = '0';
   int reconnectAttempt = 0;
   bool disposed = false, ml = false;
+  int section = 0;
+  bool? online;
   Api get api => ref.read(apiProvider);
   @override
   void initState() {
@@ -211,7 +206,12 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
       if (selected != null && widget.mode != 'driver') {
         final updated = await api.request('/bus/trips/${selected!['id']}');
         if (mounted) {
-          setState(() => selected = Map<String, dynamic>.from(updated as Map));
+          setState(
+            () => selected = {
+              ...selected!,
+              ...Map<String, dynamic>.from(updated as Map),
+            },
+          );
         }
         if (![
           'RUNNING',
@@ -334,15 +334,18 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
 
   Future<void> updateStatus(String status) async {
     if (offline) throw StateError('Reconnect before changing service status');
-    if (reason.text.trim().isEmpty) {
-      throw StateError('Enter an incident reason');
+    if (reason.text.trim().isEmpty &&
+        !['BOARDING', 'RUNNING', 'COMPLETED'].contains(status)) {
+      throw StateError('Tell us what happened before reporting a problem.');
     }
     await api.request(
       '/bus/trips/${selected!['id']}/status',
       method: 'POST',
       data: {
         'status': status,
-        'reason': reason.text.trim(),
+        'reason': reason.text.trim().isEmpty
+            ? 'Crew confirmed ${status.toLowerCase()}'
+            : reason.text.trim(),
         'delayMinutes': status == 'DELAYED' ? 10 : 0,
         'version': selected!['version'],
       },
@@ -468,13 +471,14 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
       appBar: AppBar(
         title: Text(widget.title),
         actions: [
-          if (widget.onConnectionSettings != null)
+          if (widget.onConnectionSettings != null &&
+              (!signedIn || section == 2))
             IconButton(
               tooltip: 'Server connection settings',
               onPressed: widget.onConnectionSettings,
               icon: const Icon(Icons.dns_outlined),
             ),
-          if (signedIn && !api.isDemo)
+          if (signedIn && !api.isDemo && section == 2)
             IconButton(
               tooltip: 'Sign out',
               icon: const Icon(Icons.logout),
@@ -495,6 +499,26 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
             ),
         ],
       ),
+      bottomNavigationBar: !signedIn
+          ? null
+          : NavigationBar(
+              selectedIndex: section,
+              onDestinationSelected: (v) => setState(() => section = v),
+              destinations: [
+                NavigationDestination(
+                  icon: const Icon(Icons.map_outlined),
+                  label: widget.mode == 'bus' ? 'Today' : 'Drive',
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.space_dashboard_outlined),
+                  label: widget.mode == 'bus' ? 'Manage' : 'Vehicles',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.person_outline),
+                  label: 'Account',
+                ),
+              ],
+            ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
@@ -504,7 +528,7 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
                 child: Padding(
                   padding: EdgeInsets.all(16),
                   child: Text(
-                    'UI DEMO - Sample auto and service only. No real driver verification, availability, bookings or earnings. Connect to your server for real actions.',
+                    'UI DEMO · Sample data and stop locations. No real trips or live vehicles.',
                   ),
                 ),
               ),
@@ -567,12 +591,6 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
                 login,
               ),
             ] else ...[
-              SwitchListTile(
-                title: const Text('മലയാളം / Malayalam headings'),
-                subtitle: const Text('Full translation review is pending'),
-                value: ml,
-                onChanged: (v) => setState(() => ml = v),
-              ),
               if (offline)
                 const Card(
                   child: Padding(
@@ -605,7 +623,123 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
                   );
                 }),
               ],
-              if (widget.mode == 'bus') ...[
+              if (section == 2) ...[
+                Text(
+                  'Your account',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Location is shared only when you start trip tracking. Use the menu above to sign out or change connection settings.',
+                ),
+                SwitchListTile(
+                  title: const Text('മലയാളം'),
+                  value: ml,
+                  onChanged: (v) => setState(() => ml = v),
+                ),
+              ],
+              if (section == 0) ...[
+                Text(
+                  widget.mode == 'bus'
+                      ? 'Your day, at a glance.'
+                      : 'Ready for the road?',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -.7,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 280,
+                  child: JourneyMap(
+                    compact: true,
+                    key: ValueKey(selected?['id']),
+                    refreshPins: api.isDemo || selected == null
+                        ? null
+                        : () async => servicePins([
+                            await api.request('/bus/trips/${selected!['id']}'),
+                          ]),
+                    pins: servicePins(
+                      selected == null ? items : [selected!],
+                      live: !offline,
+                    ),
+                    emptyLabel: widget.mode == 'bus'
+                        ? 'Choose an assigned service to see its stops.'
+                        : 'Tap the location button to centre the map.',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (widget.mode == 'bus') ...[
+                  Text(
+                    'Assigned services',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const Text('Today’s trips. Open a service to start.'),
+                  TextButton.icon(
+                    onPressed: busy ? null : () => action(load),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Refresh assigned services'),
+                  ),
+                ],
+                if (widget.mode == 'driver') ...[
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            online == null
+                                ? 'Set your availability'
+                                : online!
+                                ? 'You’re online'
+                                : 'You’re offline',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Go online when you’re ready. Driver approval is required.',
+                          ),
+                          const SizedBox(height: 12),
+                          button(
+                            online == true ? 'Go offline' : 'Go online',
+                            () async {
+                              final result = await api.request(
+                                '/driver/availability',
+                                method: 'POST',
+                                data: {'online': online != true},
+                              );
+                              if (mounted) {
+                                setState(
+                                  () => online = result['online'] == true,
+                                );
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  button('Manage share-auto trips', () async {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            SharedDriverPage(api: api, vehicles: items),
+                      ),
+                    );
+                  }),
+                ],
+              ],
+              if (section == 1 && widget.mode == 'bus') ...[
+                Text(
+                  'Your bus business',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Buses, routes and timetables, together in one place.',
+                ),
+                const SizedBox(height: 16),
                 button('Owner setup · buses, routes and timetables', () async {
                   await Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -614,100 +748,68 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
                   );
                   await load();
                 }),
+              ],
+              if (section == 1 && widget.mode == 'driver')
                 Text(
-                  ml ? 'ഇന്നത്തെ സർവീസുകൾ' : 'Assigned services',
+                  'Your vehicles',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                const Text(
-                  'Only use controls while safely stopped. A conductor may report incidents.',
-                ),
-                button('Refresh assigned services', load),
-              ],
-              if (widget.mode == 'driver') ...[
-                Text(
-                  'Your approved vehicles',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                button('Go online', () async {
-                  await api.request(
-                    '/driver/availability',
-                    method: 'POST',
-                    data: {'online': true},
-                  );
-                }),
-                button('Go offline', () async {
-                  await api.request(
-                    '/driver/availability',
-                    method: 'POST',
-                    data: {'online': false},
-                  );
-                }),
-                button('Manage share-auto trips', () async {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) =>
-                          SharedDriverPage(api: api, vehicles: items),
-                    ),
-                  );
-                }),
-                const Text(
-                  'Private offers and document onboarding UI are pending. Online status alone does not confirm any booking.',
-                ),
-              ],
-              if (items.isEmpty && !busy)
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text(
-                      'No services or vehicles found. Check assignments, date and search stops.',
+              if ((section == 0 && widget.mode == 'bus') ||
+                  (widget.mode == 'driver' && section == 1)) ...[
+                if (items.isEmpty && !busy)
+                  const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text(
+                        'No services or vehicles found. Check assignments, date and search stops.',
+                      ),
                     ),
                   ),
-                ),
-              for (final item in items)
-                Card(
-                  child: ListTile(
-                    title: Text(
-                      (item['route_name'] ?? item['registration'] ?? 'Service')
-                          .toString(),
-                    ),
-                    subtitle: Text(
-                      widget.mode == 'driver'
-                          ? '${item['category']} · ${item['approved'] == true ? 'Approved' : 'Approval pending'}'
-                          : '${item['status']} · ${item['departure_at']}\nGPS: ${offline ? 'CACHED' : item['locationQuality'] ?? 'Open service for freshness'}',
-                    ),
-                    isThreeLine: widget.mode != 'driver',
-                    trailing: widget.mode == 'driver'
-                        ? null
-                        : const Icon(Icons.chevron_right),
-                    onTap: widget.mode == 'driver'
-                        ? null
-                        : () => unawaited(
-                            action(
-                              () => selectTrip(
-                                Map<String, dynamic>.from(item as Map),
+                for (final item in items)
+                  Card(
+                    child: ListTile(
+                      title: Text(
+                        (item['route_name'] ??
+                                item['registration'] ??
+                                'Service')
+                            .toString(),
+                      ),
+                      subtitle: Text(
+                        widget.mode == 'driver'
+                            ? '${item['category']} · ${item['approved'] == true ? 'Approved' : 'Approval pending'}'
+                            : '${item['status']} · ${item['departure_at']}\nGPS: ${offline ? 'CACHED' : item['locationQuality'] ?? 'Open service for freshness'}',
+                      ),
+                      isThreeLine: widget.mode != 'driver',
+                      trailing: widget.mode == 'driver'
+                          ? null
+                          : const Icon(Icons.chevron_right),
+                      onTap: widget.mode == 'driver'
+                          ? null
+                          : () => unawaited(
+                              action(
+                                () => selectTrip(
+                                  Map<String, dynamic>.from(item as Map),
+                                ),
                               ),
                             ),
-                          ),
+                    ),
                   ),
-                ),
-              if (selected != null) ...[
+              ],
+              if (section == 0 && selected != null) ...[
                 const Divider(),
                 Text(
                   selected!['route_name']?.toString() ?? 'Service detail',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                Text(
-                  'Status: ${selected!['status']} · v${selected!['version']}',
+                Chip(
+                  label: Text('${selected!['status']}'.replaceAll('_', ' ')),
                 ),
                 Text(
-                  'GPS: ${offline ? 'UNAVAILABLE OFFLINE' : selected!['locationQuality']} · Last reported: ${selected!['recorded_at'] ?? 'Never'}',
-                ),
-                if (!offline && selected!['lat'] != null)
-                  Text(
-                    'Reported coordinates: ${selected!['lat']}, ${selected!['lng']}',
-                  ),
-                Text(
-                  'Reported delay: ${selected!['delay_minutes']} min · Arrival estimate unavailable',
+                  offline
+                      ? 'Offline · Live position unavailable'
+                      : selected!['locationQuality'] == 'LIVE'
+                      ? 'Location updates during your active trip'
+                      : 'Live position not shared yet',
                 ),
                 if (widget.mode == 'passenger')
                   button('Follow service alerts', () async {
@@ -726,31 +828,79 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
                     }
                   }),
                 if (widget.mode == 'bus') ...[
-                  field(reason, 'Incident reason (when safely stopped)'),
-                  for (final status in [
+                  if ([
+                    'SCHEDULED',
                     'BOARDING',
                     'RUNNING',
                     'DELAYED',
+                    'STOPPED',
                     'BREAKDOWN',
-                    'CANCELLED',
-                    'COMPLETED',
-                  ])
+                    'DIVERTED',
+                  ].contains(selected!['status']))
                     button(
-                      status == 'DELAYED'
-                          ? 'Report 10 minute estimated delay'
-                          : status,
-                      () => updateStatus(status),
+                      selected!['status'] == 'SCHEDULED'
+                          ? 'Start boarding'
+                          : selected!['status'] == 'BOARDING'
+                          ? 'Start trip'
+                          : [
+                              'STOPPED',
+                              'BREAKDOWN',
+                              'DIVERTED',
+                            ].contains(selected!['status'])
+                          ? 'Resume trip'
+                          : 'Complete trip',
+                      () => updateStatus(
+                        selected!['status'] == 'SCHEDULED'
+                            ? 'BOARDING'
+                            : selected!['status'] == 'BOARDING'
+                            ? 'RUNNING'
+                            : [
+                                'STOPPED',
+                                'BREAKDOWN',
+                                'DIVERTED',
+                              ].contains(selected!['status'])
+                            ? 'RUNNING'
+                            : 'COMPLETED',
+                      ),
                     ),
                   button(
-                    'Share foreground GPS for active service',
-                    startTracking,
+                    gps == null
+                        ? 'Share trip location'
+                        : 'Stop location sharing',
+                    () async {
+                      if (gps == null) {
+                        await startTracking();
+                      } else {
+                        await stopTracking();
+                      }
+                      if (mounted) setState(() {});
+                    },
                   ),
-                  button('Stop GPS sharing', () async {
-                    await stopTracking();
-                    setState(() {});
-                  }),
-                  const Text(
-                    'Foreground tracking only. Background tracking and store permission review are not implemented.',
+                  const Text('Location sharing works while this app is open.'),
+                  ExpansionTile(
+                    title: const Text('Report a delay or problem'),
+                    children: [
+                      field(reason, 'What happened?'),
+                      for (final status in [
+                        'DELAYED',
+                        'BREAKDOWN',
+                        'CANCELLED',
+                      ])
+                        button(
+                          status == 'DELAYED'
+                              ? 'Report 10 minute delay'
+                              : status == 'BREAKDOWN'
+                              ? 'Report breakdown'
+                              : 'Cancel this service',
+                          () => updateStatus(status),
+                        ),
+                      const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text(
+                          'Use these controls only while safely stopped.',
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ],
@@ -864,6 +1014,7 @@ class _SharedDriverPageState extends State<SharedDriverPage> {
   final stops = TextEditingController(),
       capacity = TextEditingController(text: '3'),
       fare = TextEditingController();
+  final mappedStops = <Map<String, dynamic>>[];
   String? vehicle, error;
   bool busy = false;
   List<dynamic> trips = [];
@@ -907,25 +1058,66 @@ class _SharedDriverPageState extends State<SharedDriverPage> {
     if (mounted) setState(() => trips = data);
   }
 
+  Future<void> addMapStop() async {
+    final point = await Navigator.of(context).push<LatLng>(
+      MaterialPageRoute(builder: (_) => const MapLocationPicker()),
+    );
+    if (point == null || !mounted) return;
+    final label = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('Name this stop'),
+        content: TextField(
+          controller: label,
+          autofocus: true,
+          maxLength: 120,
+          decoration: const InputDecoration(labelText: 'Stop name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialog),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (label.text.trim().isNotEmpty) {
+                Navigator.pop(dialog, label.text.trim());
+              }
+            },
+            child: const Text('Add stop'),
+          ),
+        ],
+      ),
+    );
+    // Let the dialog finish its closing animation before disposing its controller.
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    label.dispose();
+    if (name != null && mounted) {
+      setState(
+        () => mappedStops.add({
+          'name': name,
+          'lat': point.latitude,
+          'lng': point.longitude,
+        }),
+      );
+    }
+  }
+
   Future<void> publish() async {
     if (vehicle == null) throw StateError('Select an approved auto');
-    final count = int.tryParse(capacity.text), paise = int.tryParse(fare.text);
+    final count = int.tryParse(capacity.text);
+    final rupees = double.tryParse(fare.text);
+    final paise = rupees == null || !rupees.isFinite
+        ? null
+        : (rupees * 100).round();
     if (count == null || count < 1 || paise == null || paise < 0) {
-      throw StateError('Enter integer capacity and fare in paise');
+      throw StateError('Enter the seat count and fare in rupees');
     }
-    final points = stops.text.split('\n').where((l) => l.trim().isNotEmpty).map(
-      (line) {
-        final parts = line.split(',');
-        if (parts.length != 3) {
-          throw StateError('Each stop requires name,latitude,longitude');
-        }
-        return {
-          'name': parts[0].trim(),
-          'lat': double.parse(parts[1]),
-          'lng': double.parse(parts[2]),
-        };
-      },
-    ).toList();
+    if (mappedStops.length < 2) {
+      throw StateError('Add pickup and destination stops on the map.');
+    }
+    final points = mappedStops;
     await widget.api.request(
       '/shared-trips',
       method: 'POST',
@@ -986,14 +1178,31 @@ class _SharedDriverPageState extends State<SharedDriverPage> {
           ],
           onChanged: (value) => setState(() => vehicle = value),
         ),
-        TextField(
-          controller: stops,
-          minLines: 3,
-          maxLines: 8,
-          decoration: const InputDecoration(
-            labelText: 'Ordered stops: name,latitude,longitude (one per line)',
+        const SizedBox(height: 16),
+        const Text(
+          'Your route',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        ),
+        for (var i = 0; i < mappedStops.length; i++)
+          ListTile(
+            leading: const Icon(Icons.location_on_outlined),
+            title: Text(mappedStops[i]['name']),
+            trailing: IconButton(
+              tooltip: 'Remove stop',
+              icon: const Icon(Icons.close),
+              onPressed: busy
+                  ? null
+                  : () => setState(() => mappedStops.removeAt(i)),
+            ),
+          ),
+        OutlinedButton.icon(
+          onPressed: busy ? null : addMapStop,
+          icon: const Icon(Icons.add_location_alt_outlined),
+          label: Text(
+            mappedStops.isEmpty ? 'Add pickup stop' : 'Add next stop',
           ),
         ),
+        const SizedBox(height: 16),
         TextField(
           controller: capacity,
           keyboardType: TextInputType.number,
@@ -1002,9 +1211,7 @@ class _SharedDriverPageState extends State<SharedDriverPage> {
         TextField(
           controller: fare,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Fare per seat, integer paise (₹1 = 100)',
-          ),
+          decoration: const InputDecoration(labelText: 'Fare per seat (₹)'),
         ),
         ListTile(
           title: const Text('Departure (device local time)'),

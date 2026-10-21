@@ -17,6 +17,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Vehicles'));
+      await tester.pumpAndSettle();
       expect(find.text('DEMO AUTO 001'), findsOneWidget);
       expect(find.textContaining('UI DEMO'), findsOneWidget);
       expect(find.text('Request sandbox challenge'), findsNothing);
@@ -29,8 +31,14 @@ void main() {
         ),
         throwsStateError,
       );
+      await tester.tap(find.text('Drive'));
+      await tester.pumpAndSettle();
       final manage = find.text('Manage share-auto trips');
-      await tester.ensureVisible(manage);
+      await tester.scrollUntilVisible(
+        manage,
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(manage);
       await tester.pumpAndSettle();
       expect(find.text('Your services'), findsOneWidget);

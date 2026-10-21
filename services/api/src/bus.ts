@@ -85,7 +85,7 @@ export class Bus {
   }
   async search(date: string, origin?: string, destination?: string, operatorId?: string) {
     const { rows } = await pool.query(
-      "SELECT t.*,r.name route_name,v.registration,ST_Y(l.point::geometry) lat,ST_X(l.point::geometry) lng,l.recorded_at, (SELECT json_agg(json_build_object('id',s.id,'name',s.name,'sequence',rs.sequence,'offsetMinutes',rs.offset_minutes) ORDER BY rs.sequence) FROM route_stops rs JOIN bus_stops s ON s.id=rs.stop_id WHERE rs.route_version_id=t.route_version_id) stops FROM trip_instances t JOIN route_versions rv ON rv.id=t.route_version_id JOIN bus_routes r ON r.id=rv.route_id JOIN vehicles v ON v.id=t.vehicle_id LEFT JOIN vehicle_locations l ON l.trip_id=t.id WHERE t.service_date=$1::date AND ($4::uuid IS NULL OR t.operator_id=$4) AND ($2::text IS NULL OR EXISTS(SELECT 1 FROM route_stops a JOIN bus_stops sa ON sa.id=a.stop_id JOIN route_stops b ON b.route_version_id=a.route_version_id AND b.sequence>a.sequence JOIN bus_stops sb ON sb.id=b.stop_id WHERE a.route_version_id=t.route_version_id AND sa.name ILIKE '%'||$2||'%' AND sb.name ILIKE '%'||$3||'%')) ORDER BY t.departure_at LIMIT 200",
+      "SELECT t.*,r.name route_name,v.registration,ST_Y(l.point::geometry) lat,ST_X(l.point::geometry) lng,l.recorded_at, (SELECT json_agg(json_build_object('id',s.id,'name',s.name,'sequence',rs.sequence,'offsetMinutes',rs.offset_minutes,'lat',ST_Y(s.point::geometry),'lng',ST_X(s.point::geometry)) ORDER BY rs.sequence) FROM route_stops rs JOIN bus_stops s ON s.id=rs.stop_id WHERE rs.route_version_id=t.route_version_id) stops FROM trip_instances t JOIN route_versions rv ON rv.id=t.route_version_id JOIN bus_routes r ON r.id=rv.route_id JOIN vehicles v ON v.id=t.vehicle_id LEFT JOIN vehicle_locations l ON l.trip_id=t.id WHERE t.service_date=$1::date AND ($4::uuid IS NULL OR t.operator_id=$4) AND ($2::text IS NULL OR EXISTS(SELECT 1 FROM route_stops a JOIN bus_stops sa ON sa.id=a.stop_id JOIN route_stops b ON b.route_version_id=a.route_version_id AND b.sequence>a.sequence JOIN bus_stops sb ON sb.id=b.stop_id WHERE a.route_version_id=t.route_version_id AND sa.name ILIKE '%'||$2||'%' AND sb.name ILIKE '%'||$3||'%')) ORDER BY t.departure_at LIMIT 200",
       [date, origin ?? null, destination ?? null, operatorId ?? null],
     );
     return rows.map(this.present);
@@ -105,7 +105,7 @@ export class Bus {
   }
   async detail(id: string) {
     const { rows } = await pool.query(
-      'SELECT t.*,r.name route_name,v.registration,ST_Y(l.point::geometry) lat,ST_X(l.point::geometry) lng,l.recorded_at FROM trip_instances t JOIN route_versions rv ON rv.id=t.route_version_id JOIN bus_routes r ON r.id=rv.route_id JOIN vehicles v ON v.id=t.vehicle_id LEFT JOIN vehicle_locations l ON l.trip_id=t.id WHERE t.id=$1',
+      "SELECT t.*,r.name route_name,v.registration,ST_Y(l.point::geometry) lat,ST_X(l.point::geometry) lng,l.recorded_at,(SELECT json_agg(json_build_object('id',s.id,'name',s.name,'sequence',rs.sequence,'offsetMinutes',rs.offset_minutes,'lat',ST_Y(s.point::geometry),'lng',ST_X(s.point::geometry)) ORDER BY rs.sequence) FROM route_stops rs JOIN bus_stops s ON s.id=rs.stop_id WHERE rs.route_version_id=t.route_version_id) stops FROM trip_instances t JOIN route_versions rv ON rv.id=t.route_version_id JOIN bus_routes r ON r.id=rv.route_id JOIN vehicles v ON v.id=t.vehicle_id LEFT JOIN vehicle_locations l ON l.trip_id=t.id WHERE t.id=$1",
       [id],
     );
     if (!rows[0]) throw new NotFoundException();
