@@ -15,3 +15,9 @@ Migration 005 adds current driver location, rejection records, pickup confirmati
 ## Verification
 
 Five embedded PostGIS/database/HTTP suites passed, including existing auth/session/bus/owner flows and a new private ride suite covering role/participant isolation, approved-driver GPS, quote validation, idempotent requests, concurrent acceptance, active ride guard, passenger pickup confirmation, cash idempotency, declined offers, stale GPS and expiry. Mobile checks, exact-source native CI, hosted migration/API and new APK publication are being completed. Actual-device acceptance remains deferred by the user and is not claimed.
+
+## Follow-up design and verification
+
+User requested a new premium palette, typeface and layout while private ride delivery was in progress. The shared app identity now uses warm ivory, charcoal and champagne with bundled Manrope variable fonts and the SIL Open Font License. All three apps default to the light design; a warm dark theme remains defined. Passenger transport choices precede the map and journey input lives in a collapsible panel. Driver, Bus and private ride pages use clear editorial headings and consistent action/card spacing. Font source: https://github.com/google/fonts/tree/main/ofl/manrope ; SHA-256 3ae11c49db0455a3cc33e37d380f20fdb8c7f8b41dc07625c177e3d87a9d6ae6.
+
+Initial source 5f91112 had a native integration fixture ordering failure: the private suite assumed another concurrently running test had created an ordinary AUTO fare. The private fixture now provisions its own explicit test fare policy. Five embedded suites and 22 mobile tests pass with the final design. Foreground location work also checks app activity and cancels pending sharing after navigation/backgrounding. Native CI must pass for the final follow-up source before release.

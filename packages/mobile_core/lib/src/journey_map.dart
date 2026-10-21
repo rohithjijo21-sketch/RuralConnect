@@ -309,11 +309,11 @@ class _JourneyMapState extends State<JourneyMap> {
                         tooltip: pin.name,
                         style: IconButton.styleFrom(
                           backgroundColor: pin.vehicle
-                              ? const Color(0xFF142A24)
+                              ? const Color(0xFF242221)
                               : Colors.white,
                           foregroundColor: pin.vehicle
                               ? Colors.white
-                              : const Color(0xFF14634D),
+                              : const Color(0xFF242221),
                         ),
                         onPressed:
                             pin.onTap ??
@@ -383,7 +383,7 @@ class _JourneyMapState extends State<JourneyMap> {
                       height: 44,
                       child: const Icon(
                         Icons.location_pin,
-                        color: Color(0xFF14634D),
+                        color: Color(0xFF242221),
                         size: 44,
                       ),
                     ),

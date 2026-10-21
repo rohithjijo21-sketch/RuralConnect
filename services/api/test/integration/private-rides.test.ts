@@ -15,6 +15,9 @@ test(
       !process.env.DATABASE_URL?.includes('ruralconnect_test')
     )
       throw Error('Disposable database required');
+    await pool.query(
+      "INSERT INTO fare_policies(category,base_paise,per_km_paise,version) VALUES('AUTO',3000,1500,100)",
+    );
     const rides = new PrivateRides(),
       bookings = new Bookings();
     const actors: Actor[] = [];

@@ -77,6 +77,7 @@ class _AppState extends ConsumerState<RuralConnectApp> {
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
     theme: ruralTheme(),
     darkTheme: ruralTheme(brightness: Brightness.dark),
+    themeMode: ThemeMode.light,
   );
 }
 
@@ -640,18 +641,19 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
                 ),
               ],
               if (section == 0) ...[
-                Text(
-                  widget.mode == 'bus'
-                      ? 'Your day, at a glance.'
-                      : 'Ready for the road?',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -.7,
-                  ),
+                PremiumHeading(
+                  eyebrow: widget.mode == 'bus'
+                      ? 'Bus & crew'
+                      : 'Driver partner',
+                  title: widget.mode == 'bus'
+                      ? 'A smoother\nday ahead.'
+                      : 'Ready when\nyou are.',
+                  subtitle: widget.mode == 'bus'
+                      ? 'Your services and bus business, beautifully organised.'
+                      : 'Make every journey count.',
                 ),
-                const SizedBox(height: 16),
                 SizedBox(
-                  height: 280,
+                  height: 220,
                   child: JourneyMap(
                     compact: true,
                     key: ValueKey(selected?['id']),

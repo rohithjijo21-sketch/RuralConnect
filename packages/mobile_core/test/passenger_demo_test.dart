@@ -47,7 +47,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('UI DEMO · Sample schedules only'), findsOneWidget);
-      expect(find.text('Find a bus'), findsOneWidget);
+      expect(find.text('Plan your journey'), findsOneWidget);
       final screenshot = Platform.environment['UI_SCREENSHOT_PATH'];
       if (screenshot != null) {
         await tester.runAsync(() async {

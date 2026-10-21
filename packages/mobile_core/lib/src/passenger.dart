@@ -9,7 +9,7 @@ import 'journey_map.dart';
 import 'design.dart';
 import 'private_rides.dart';
 
-const forest = Color(0xFF14634D);
+const forest = Color(0xFF242221);
 
 class PassengerScreen extends StatefulWidget {
   final Api api;
@@ -302,10 +302,9 @@ class _PassengerScreenState extends State<PassengerScreen> {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final palette = ColorScheme.fromSeed(
-      seedColor: forest,
+    final palette = ruralTheme(
       brightness: dark ? Brightness.dark : Brightness.light,
-    );
+    ).colorScheme;
     return Theme(
       data: ruralTheme(brightness: dark ? Brightness.dark : Brightness.light),
       child: Builder(
@@ -568,116 +567,12 @@ class _PassengerScreenState extends State<PassengerScreen> {
   List<Widget> home(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return [
-      const SizedBox(height: 12),
-      Text(
-        name.isEmpty ? 'Where to?' : 'Where to, ${name.split(' ').first}?',
-        style: const TextStyle(
-          fontSize: 30,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -1,
-        ),
-      ),
-      const SizedBox(height: 16),
-      if (api.isDemo)
-        const Padding(
-          padding: EdgeInsets.only(bottom: 8),
-          child: Text(
-            'Sample map stops · Not actual boarding points',
-            style: TextStyle(fontSize: 12),
-          ),
-        ),
-      SizedBox(
-        height: 260,
-        child: JourneyMap(
-          compact: true,
-          refreshPins: api.isDemo
-              ? null
-              : () async => servicePins(
-                  await api.request('/bus/trips?date=$today') as List,
-                ),
-          pins: servicePins(
-            buses,
-            live: !offline && !api.isDemo,
-            onTrip: (t) {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => BusDetail(
-                    api: api,
-                    initial: Map<String, dynamic>.from(t),
-                  ),
-                ),
-              );
-            },
-          ),
-          emptyLabel: offline
-              ? 'Offline · Live locations unavailable'
-              : 'Published stops and active buses appear here.',
-        ),
-      ),
-      const SizedBox(height: 16),
-      Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: colors.outlineVariant.withValues(alpha: .55),
-          ),
-        ),
-        child: Column(
-          children: [
-            TextField(
-              controller: origin,
-              decoration: const InputDecoration(
-                labelText: 'From',
-                hintText: 'Your pickup stop',
-                prefixIcon: Icon(Icons.trip_origin_rounded),
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: destination,
-              decoration: InputDecoration(
-                labelText: 'To',
-                hintText: 'Where are you going?',
-                prefixIcon: const Icon(Icons.location_on_outlined),
-                suffixIcon: IconButton(
-                  tooltip: 'Swap stops',
-                  onPressed: () {
-                    final a = origin.text;
-                    origin.text = destination.text;
-                    destination.text = a;
-                  },
-                  icon: const Icon(Icons.swap_vert_rounded),
-                ),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: buses.isEmpty ? null : chooseStops,
-              icon: const Icon(Icons.map_outlined),
-              label: const Text('Choose stops on map'),
-            ),
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              onPressed: busy
-                  ? null
-                  : () => run(() async {
-                      if (origin.text.trim().isEmpty !=
-                          destination.text.trim().isEmpty) {
-                        throw StateError(
-                          'Enter both origin and destination, or leave both empty.',
-                        );
-                      }
-                      await load();
-                    }),
-              icon: const Icon(Icons.search_rounded),
-              label: const Text(
-                'Find a bus',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
-        ),
+      PremiumHeading(
+        eyebrow: 'Everyday, elevated',
+        title: name.isEmpty
+            ? 'A better way\nto get there.'
+            : 'Let’s go, ${name.split(' ').first}.',
+        subtitle: 'Your town. Your plans. One simple journey.',
       ),
       const SizedBox(height: 20),
       Row(
@@ -715,6 +610,120 @@ class _PassengerScreenState extends State<PassengerScreen> {
                   Text('Taxi / auto', style: TextStyle(fontSize: 12)),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 18),
+      if (api.isDemo)
+        const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text(
+            'Sample map stops · Not actual boarding points',
+            style: TextStyle(fontSize: 12),
+          ),
+        ),
+      SizedBox(
+        height: 260,
+        child: JourneyMap(
+          compact: true,
+          refreshPins: api.isDemo
+              ? null
+              : () async => servicePins(
+                  await api.request('/bus/trips?date=$today') as List,
+                ),
+          pins: servicePins(
+            buses,
+            live: !offline && !api.isDemo,
+            onTrip: (t) {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => BusDetail(
+                    api: api,
+                    initial: Map<String, dynamic>.from(t),
+                  ),
+                ),
+              );
+            },
+          ),
+          emptyLabel: offline
+              ? 'Offline · Live locations unavailable'
+              : 'Published stops and active buses appear here.',
+        ),
+      ),
+      const SizedBox(height: 16),
+      ExpansionTile(
+        title: const Text(
+          'Plan your journey',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: const Text('Choose pickup and destination stops'),
+        leading: const Icon(Icons.search_rounded),
+        initiallyExpanded: false,
+        maintainState: true,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: colors.outlineVariant.withValues(alpha: .55),
+              ),
+            ),
+            child: Column(
+              children: [
+                TextField(
+                  controller: origin,
+                  decoration: const InputDecoration(
+                    labelText: 'From',
+                    hintText: 'Your pickup stop',
+                    prefixIcon: Icon(Icons.trip_origin_rounded),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: destination,
+                  decoration: InputDecoration(
+                    labelText: 'To',
+                    hintText: 'Where are you going?',
+                    prefixIcon: const Icon(Icons.location_on_outlined),
+                    suffixIcon: IconButton(
+                      tooltip: 'Swap stops',
+                      onPressed: () {
+                        final a = origin.text;
+                        origin.text = destination.text;
+                        destination.text = a;
+                      },
+                      icon: const Icon(Icons.swap_vert_rounded),
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: buses.isEmpty ? null : chooseStops,
+                  icon: const Icon(Icons.map_outlined),
+                  label: const Text('Choose stops on map'),
+                ),
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () => run(() async {
+                          if (origin.text.trim().isEmpty !=
+                              destination.text.trim().isEmpty) {
+                            throw StateError(
+                              'Enter both origin and destination, or leave both empty.',
+                            );
+                          }
+                          await load();
+                        }),
+                  icon: const Icon(Icons.search_rounded),
+                  label: const Text(
+                    'Find a bus',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

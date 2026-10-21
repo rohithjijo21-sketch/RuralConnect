@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'api.dart';
 import 'journey_map.dart';
+import 'design.dart';
 
 String rideMoney(dynamic value) =>
     '₹${((value as num? ?? 0) / 100).toStringAsFixed(2)}';
@@ -32,6 +33,8 @@ class _PrivateRidesState extends State<PrivateRidesScreen>
   String? error, requestKey;
   Map? quote, ride;
   List rides = [], offers = [];
+  bool appActive = true, locatingHeartbeat = false;
+  int locationGeneration = 0;
   bool busy = false,
       fetching = false,
       tracking = false,
@@ -48,18 +51,24 @@ class _PrivateRidesState extends State<PrivateRidesScreen>
     timer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (!busy && !fetching) unawaited(refresh());
       if (tracking &&
+          appActive &&
+          !locatingHeartbeat &&
           !sendingLocation &&
           (lastSent == null ||
               DateTime.now().difference(lastSent!).inSeconds >= 20)) {
+        locatingHeartbeat = true;
         unawaited(
           Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.high,
-              timeLimit: Duration(seconds: 15),
-            ),
-          ).then(sendLocation).catchError((Object e) {
-            if (mounted) setState(() => error = readableError(e));
-          }),
+                locationSettings: const LocationSettings(
+                  accuracy: LocationAccuracy.high,
+                  timeLimit: Duration(seconds: 15),
+                ),
+              )
+              .then(sendLocation)
+              .catchError((Object e) {
+                if (mounted) setState(() => error = readableError(e));
+              })
+              .whenComplete(() => locatingHeartbeat = false),
         );
       }
     });
@@ -127,16 +136,19 @@ class _PrivateRidesState extends State<PrivateRidesScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) unawaited(stopLocation());
+    appActive = state == AppLifecycleState.resumed;
+    if (!appActive) unawaited(stopLocation());
   }
 
   Future<void> stopLocation() async {
+    locationGeneration++;
     await locations?.cancel();
     locations = null;
     if (mounted) setState(() => tracking = false);
   }
 
   Future<void> shareLocation() async {
+    final generation = ++locationGeneration;
     if (api.isDemo) {
       throw StateError('Preview only. Connect to the beta API for real rides.');
     }
@@ -162,7 +174,9 @@ class _PrivateRidesState extends State<PrivateRidesScreen>
         timeLimit: Duration(seconds: 20),
       ),
     );
+    if (!mounted || !appActive || generation != locationGeneration) return;
     await sendLocation(first);
+    if (!mounted || !appActive || generation != locationGeneration) return;
     await locations?.cancel();
     locations =
         Geolocator.getPositionStream(
@@ -190,6 +204,7 @@ class _PrivateRidesState extends State<PrivateRidesScreen>
   }
 
   Future<void> sendLocation(Position p) async {
+    if (!mounted || !appActive) return;
     if (p.accuracy > 100) {
       throw StateError(
         'GPS accuracy is low. Move somewhere with a clearer signal.',
@@ -420,8 +435,20 @@ class _PrivateRidesState extends State<PrivateRidesScreen>
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),
+            if (ride == null)
+              PremiumHeading(
+                eyebrow: widget.driver
+                    ? 'Private rides'
+                    : 'Made for your plans',
+                title: widget.driver
+                    ? 'Your next journey.'
+                    : 'A ride of your own.',
+                subtitle: widget.driver
+                    ? 'Nearby requests. Clear fares. You’re in control.'
+                    : 'Choose pickup and destination to get started.',
+              ),
             SizedBox(
-              height: 260,
+              height: 220,
               child: JourneyMap(
                 compact: true,
                 pins: pins(ride),
