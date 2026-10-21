@@ -28,6 +28,7 @@ import { Auth, phoneSchema } from './auth.js';
 import { Bus } from './bus.js';
 import { BusOwner } from './bus-owner.js';
 import { Bookings } from './bookings.js';
+import { PrivateRides } from './private-rides.js';
 import { pool } from './db.js';
 import { busStates } from './domain.js';
 const uuid = z.string().uuid(),
@@ -80,6 +81,7 @@ class Api {
     @Inject(Bus) private bus: Bus,
     @Inject(Bookings) private bookings: Bookings,
     @Inject(BusOwner) private owner: BusOwner,
+    @Inject(PrivateRides) private rides: PrivateRides,
   ) {}
   @Get('openapi.json') async spec() {
     return JSON.parse(
@@ -93,7 +95,9 @@ class Api {
     return { status: 'ok' };
   }
   @Get('ready') async ready() {
-    const r = await pool.query("SELECT 1 FROM schema_migrations WHERE name='004_bus_owner.sql'");
+    const r = await pool.query(
+      "SELECT 1 FROM schema_migrations WHERE name='005_private_rides.sql'",
+    );
     if (!r.rowCount) throw new HttpException('Migrations required', 503);
     return { status: 'ready' };
   }
@@ -533,14 +537,70 @@ class Api {
       )
     ).rows;
   }
-  @Get('bookings') async bookingsList(@Headers('authorization') h: string) {
+  @Get('driver/availability') async availability(@Headers('authorization') h: string) {
+    return this.rides.availability(await this.auth.actor(h));
+  }
+  @Post('driver/location') async driverLocation(
+    @Headers('authorization') h: string,
+    @Body() b: unknown,
+  ) {
+    return this.rides.location(
+      await this.auth.actor(h),
+      z
+        .object({
+          lat: z.number().min(-90).max(90),
+          lng: z.number().min(-180).max(180),
+          accuracyM: z.number().int().min(0).max(100),
+          recordedAt: instant,
+        })
+        .strict()
+        .parse(b),
+    );
+  }
+  @Get('driver/offers') async offers(@Headers('authorization') h: string) {
+    return this.rides.offers(await this.auth.actor(h));
+  }
+  @Post('bookings/:id/reject') async rejectOffer(
+    @Headers('authorization') h: string,
+    @Param('id') t: string,
+  ) {
+    return this.rides.reject(await this.auth.actor(h), id(t));
+  }
+  @Post('bookings/quote') async quote(@Headers('authorization') h: string, @Body() b: unknown) {
     const a = await this.auth.actor(h);
-    return (
-      await pool.query(
-        'SELECT * FROM private_bookings WHERE passenger_id=$1 OR driver_id=$1 ORDER BY created_at DESC LIMIT 100',
-        [a.id],
-      )
-    ).rows;
+    this.auth.require(a, 'PASSENGER');
+    return this.rides.quote(
+      z
+        .object({ pickup: point, dropoff: point, category: z.enum(['AUTO', 'TAXI']) })
+        .strict()
+        .parse(b),
+    );
+  }
+  @Get('bookings/:id') async rideDetail(
+    @Headers('authorization') h: string,
+    @Param('id') t: string,
+  ) {
+    return this.rides.detail(await this.auth.actor(h), id(t));
+  }
+  @Post('bookings/:id/confirm-pickup') async confirmPickup(
+    @Headers('authorization') h: string,
+    @Param('id') t: string,
+    @Body() b: unknown,
+  ) {
+    return this.rides.confirmPickup(
+      await this.auth.actor(h),
+      id(t),
+      z.object({ version: z.number().int().positive() }).strict().parse(b).version,
+    );
+  }
+  @Get('bookings') async bookingsList(
+    @Headers('authorization') h: string,
+    @Query('as') as: unknown,
+  ) {
+    return this.rides.list(
+      await this.auth.actor(h),
+      z.enum(['driver', 'passenger']).optional().parse(as),
+    );
   }
   @Post('bookings') async booking(
     @Headers('authorization') h: string,
@@ -550,7 +610,14 @@ class Api {
     return this.bookings.privateCreate(
       await this.auth.actor(h),
       z
-        .object({ pickup: point, dropoff: point, category: z.enum(['AUTO', 'TAXI']) })
+        .object({
+          pickup: point,
+          dropoff: point,
+          category: z.enum(['AUTO', 'TAXI']),
+          pickupLabel: short.optional(),
+          dropoffLabel: short.optional(),
+          expectedFarePaise: z.number().int().nonnegative().optional(),
+        })
         .strict()
         .parse(b),
       key(k),
@@ -589,7 +656,7 @@ class Api {
     return this.bookings.cash(await this.auth.actor(h), id(t), key(k));
   }
 }
-@Module({ controllers: [Api], providers: [Auth, Bus, Bookings, BusOwner] })
+@Module({ controllers: [Api], providers: [Auth, Bus, Bookings, BusOwner, PrivateRides] })
 class App {}
 export async function bootstrap(port = Number(process.env.PORT ?? 3001)) {
   const config = runtimeConfig();

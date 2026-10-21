@@ -8,7 +8,7 @@ const db = await PGlite.create({ extensions: { postgis, pgcrypto } });
 for (const name of (await readdir(new URL('../migrations/', import.meta.url))).sort())
   await db.exec(await readFile(new URL('../migrations/' + name, import.meta.url), 'utf8'));
 await db.exec(
-  "CREATE TABLE schema_migrations(name text PRIMARY KEY); INSERT INTO schema_migrations VALUES ('001_foundation.sql'),('002_bookings.sql'),('003_beta_invites.sql'),('004_bus_owner.sql');",
+  "CREATE TABLE schema_migrations(name text PRIMARY KEY); INSERT INTO schema_migrations VALUES ('001_foundation.sql'),('002_bookings.sql'),('003_beta_invites.sql'),('004_bus_owner.sql'),('005_private_rides.sql');",
 );
 console.log('All migrations applied to embedded PostgreSQL/PostGIS');
 const server = new PGLiteSocketServer({ db, host: '127.0.0.1', port: 55432, maxConnections: 20 });
@@ -37,6 +37,7 @@ try {
       'test/integration/http.test.ts',
       'test/integration/beta.test.ts',
       'test/integration/bus-owner.test.ts',
+      'test/integration/private-rides.test.ts',
     ],
     { env, stdio: 'inherit', cwd: new URL('..', import.meta.url) },
   );

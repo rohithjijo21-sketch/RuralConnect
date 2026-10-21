@@ -115,3 +115,7 @@ Bus app owner workspace, pending owner registration, unapproved fleet registrati
 ## Minimal map UI — 21 October 2026
 
 All three mobile interfaces are being simplified with shared styling, task navigation, OSM maps, map-picked stops and external directions. Bus search/detail now includes real stop coordinates. Shared mobile and embedded backend tests pass; all three browser demos and independent launch tests passed. Android CI, hosted API update and APK publication remain pending. Road routing/traffic ETA, background GPS and automatic driver proximity matching are not implemented. See docs/operations/minimal-map-ui.md. Existing production limitations remain.
+
+## Private Taxi / Auto — 21 October 2026
+
+Passenger and driver private ride screens, map location selection, cash quotes with explicit temporary beta pricing, nearby offers, atomic acceptance/decline, expiry/cancellation, passenger-confirmed pickup, trip progression, foreground driver tracking, history and cash recording are implemented. Five embedded backend suites and 22 shared mobile tests pass; analysis passes. Native CI, deployed migration 005 and APK publication are pending. Actual-device acceptance is deferred by user choice. Temporary beta defaults (Auto ₹30 + ₹15/km, Taxi ₹60 + ₹20/km) use straight-line distance and are excluded when beta authentication is disabled. Road routing/traffic ETA, background GPS, push delivery and commercial readiness remain unfinished. See docs/operations/private-rides-beta.md.

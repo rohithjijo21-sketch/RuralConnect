@@ -7,6 +7,10 @@ void main() {
   testWidgets(
     'Driver preview shows sample auto without issuing a session or accepting mutations',
     (tester) async {
+      tester.view.physicalSize = const Size(430, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       final api = DemoApi(mode: 'driver');
       await tester.pumpWidget(
         ProviderScope(

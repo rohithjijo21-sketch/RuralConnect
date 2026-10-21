@@ -7,6 +7,7 @@ import 'live_socket.dart';
 import 'api.dart';
 import 'journey_map.dart';
 import 'design.dart';
+import 'private_rides.dart';
 
 const forest = Color(0xFF14634D);
 
@@ -696,8 +697,10 @@ class _PassengerScreenState extends State<PassengerScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: OutlinedButton(
-              onPressed: () => message(
-                'Private auto and taxi rides are not available in this test build.',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => PrivateRidesScreen(api: api),
+                ),
               ),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),

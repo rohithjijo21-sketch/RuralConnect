@@ -23,6 +23,7 @@ class JourneyPin {
   final String name;
   final LatLng point;
   final bool vehicle;
+  final IconData? icon;
   final DateTime? recordedAt;
   final VoidCallback? onTap;
   const JourneyPin(
@@ -31,6 +32,7 @@ class JourneyPin {
     this.vehicle = false,
     this.onTap,
     this.recordedAt,
+    this.icon,
   });
 }
 
@@ -354,9 +356,10 @@ class _JourneyMapState extends State<JourneyMap> {
                               ),
                             ),
                         icon: Icon(
-                          pin.vehicle
-                              ? Icons.directions_bus_rounded
-                              : Icons.location_on_rounded,
+                          pin.icon ??
+                              (pin.vehicle
+                                  ? Icons.directions_bus_rounded
+                                  : Icons.location_on_rounded),
                         ),
                       ),
                     ),

@@ -281,17 +281,30 @@ export class Bookings {
       pickup: { lat: number; lng: number };
       dropoff: { lat: number; lng: number };
       category: string;
+      pickupLabel?: string;
+      dropoffLabel?: string;
+      expectedFarePaise?: number;
     },
     key: string,
   ) {
     if (!actor.roles.includes('PASSENGER')) throw new ForbiddenException();
     return transaction((db) =>
       this.idempotent(db, actor, key, { kind: 'private', ...input }, async () => {
-        // Pricing is deliberately unavailable until approved policies are configured.
+        await db.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [actor.id]);
+        if (
+          (
+            await db.query(
+              "SELECT 1 FROM private_bookings WHERE passenger_id=$1 AND (status IN ('ACCEPTED','ARRIVED','IN_PROGRESS') OR (status='REQUESTED' AND created_at>=now()-interval '3 minutes'))",
+              [actor.id],
+            )
+          ).rowCount
+        )
+          throw new ConflictException('You already have an active ride');
+        // Beta prices are excluded when invitation beta mode is disabled.
         const policy = (
           await db.query(
-            'SELECT * FROM fare_policies WHERE category=$1 ORDER BY version DESC LIMIT 1',
-            [input.category],
+            'SELECT * FROM fare_policies WHERE category=$1 AND (NOT beta_only OR $2) ORDER BY version DESC LIMIT 1',
+            [input.category, process.env.BETA_AUTH_ENABLED === 'true'],
           )
         ).rows[0];
         if (!policy) throw new ConflictException('No approved fare policy configured');
@@ -301,11 +314,15 @@ export class Bookings {
             [input.pickup.lng, input.pickup.lat, input.dropoff.lng, input.dropoff.lat],
           )
         ).rows[0].meters;
+        if (distance < 50 || distance > 100000)
+          throw new ConflictException('Choose locations between 50 metres and 100 km apart');
         // An explicit distance-based estimate, never represented as road-route distance.
         const fare = policy.base_paise + Math.ceil(distance / 1000) * policy.per_km_paise;
+        if (input.expectedFarePaise !== undefined && fare !== input.expectedFarePaise)
+          throw new ConflictException('Fare changed. Get a new estimate before requesting.');
         const r = (
           await db.query(
-            'INSERT INTO ride_requests(passenger_id,pickup,dropoff,category) VALUES($1,ST_SetSRID(ST_MakePoint($2,$3),4326)::geography,ST_SetSRID(ST_MakePoint($4,$5),4326)::geography,$6) RETURNING id',
+            'INSERT INTO ride_requests(passenger_id,pickup,dropoff,category,pickup_label,dropoff_label) VALUES($1,ST_SetSRID(ST_MakePoint($2,$3),4326)::geography,ST_SetSRID(ST_MakePoint($4,$5),4326)::geography,$6,$7,$8) RETURNING id',
             [
               actor.id,
               input.pickup.lng,
@@ -313,6 +330,8 @@ export class Bookings {
               input.dropoff.lng,
               input.dropoff.lat,
               input.category,
+              input.pickupLabel ?? 'Pickup',
+              input.dropoffLabel ?? 'Destination',
             ],
           )
         ).rows[0];
@@ -332,14 +351,35 @@ export class Bookings {
         await db.query('SELECT online FROM driver_profiles WHERE user_id=$1 FOR UPDATE', [actor.id])
       ).rows[0];
       if (!d.online) throw new ForbiddenException('Driver must be online');
+      if (
+        (
+          await db.query(
+            "SELECT 1 FROM private_bookings WHERE driver_id=$1 AND status IN ('ACCEPTED','ARRIVED','IN_PROGRESS')",
+            [actor.id],
+          )
+        ).rowCount
+      )
+        throw new ConflictException('Finish your current ride first');
       const b = (
         await db.query(
-          'SELECT b.*,r.category FROM private_bookings b JOIN ride_requests r ON r.id=b.request_id WHERE b.id=$1 FOR UPDATE OF b',
-          [id],
+          "SELECT b.*,r.category, EXISTS(SELECT 1 FROM driver_locations l WHERE l.user_id=$2 AND l.recorded_at BETWEEN now()-interval '60 seconds' AND now() AND ST_DWithin(l.point,r.pickup,8000)) nearby FROM private_bookings b JOIN ride_requests r ON r.id=b.request_id WHERE b.id=$1 FOR UPDATE OF b",
+          [id, actor.id],
         )
       ).rows[0];
       if (!b) throw new NotFoundException();
-      if (b.passenger_id === actor.id || b.status !== 'REQUESTED' || b.category !== v.category)
+      if (
+        b.passenger_id === actor.id ||
+        b.status !== 'REQUESTED' ||
+        b.category !== v.category ||
+        !b.nearby ||
+        new Date(b.created_at).getTime() < Date.now() - 180000 ||
+        (
+          await db.query(
+            'SELECT 1 FROM private_offer_rejections WHERE booking_id=$1 AND driver_id=$2',
+            [id, actor.id],
+          )
+        ).rowCount
+      )
         throw new ConflictException('Offer unavailable');
       const updated = (
         await db.query(
@@ -362,6 +402,8 @@ export class Bookings {
       const driver = b.driver_id === actor.id;
       if (!driver && b.passenger_id !== actor.id) throw new ForbiddenException();
       if (driver) await this.eligible(db, actor, b.vehicle_id);
+      if (status === 'IN_PROGRESS' && !b.pickup_confirmed_at)
+        throw new ConflictException('The passenger must confirm pickup before the trip starts');
       const flow: Record<string, string[]> = {
         REQUESTED: ['CANCELLED'],
         ACCEPTED: ['ARRIVED', 'CANCELLED'],

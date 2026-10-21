@@ -161,6 +161,17 @@ test(
       const vehicle = (await request('/driver/vehicles', 'GET', undefined, driver.accessToken))
         .data[0];
       await request('/driver/availability', 'POST', { online: true }, driver.accessToken);
+      assert.equal(
+        (
+          await request(
+            '/driver/location',
+            'POST',
+            { lat: 10.06, lng: 76.63, accuracyM: 10, recordedAt: new Date().toISOString() },
+            driver.accessToken,
+          )
+        ).status,
+        201,
+      );
       let b = (
         await request(
           '/bookings/' + booking.data.id + '/accept',
@@ -171,6 +182,15 @@ test(
       ).data;
       assert.equal(b.status, 'ACCEPTED');
       for (const status of ['ARRIVED', 'IN_PROGRESS', 'COMPLETED']) {
+        if (status === 'IN_PROGRESS')
+          b = (
+            await request(
+              '/bookings/' + b.id + '/confirm-pickup',
+              'POST',
+              { version: b.version },
+              p2.accessToken,
+            )
+          ).data;
         const result = await request(
           '/bookings/' + b.id + '/status',
           'POST',

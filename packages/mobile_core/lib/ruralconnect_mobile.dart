@@ -18,6 +18,7 @@ import 'src/passenger.dart';
 import 'src/bus_owner.dart';
 import 'src/journey_map.dart';
 import 'src/design.dart';
+import 'src/private_rides.dart';
 import 'package:latlong2/latlong.dart';
 export 'src/passenger.dart';
 export 'src/demo.dart';
@@ -720,6 +721,17 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
+                  button('Private taxi / auto rides', () async {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => PrivateRidesScreen(
+                          api: api,
+                          driver: true,
+                          vehicles: items,
+                        ),
+                      ),
+                    );
+                  }),
                   button('Manage share-auto trips', () async {
                     await Navigator.of(context).push(
                       MaterialPageRoute<void>(
