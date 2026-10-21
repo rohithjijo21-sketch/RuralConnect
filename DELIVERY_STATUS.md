@@ -97,6 +97,7 @@ Offline logout additionally clears local credentials even if server revocation c
 User direction: build and test Android now; return to iOS later. All three Android debug APKs built successfully in GitHub Actions run 39121614656 (application source commit 0325fd9). That run also passed native PostgreSQL/PostGIS integration, backend tests, admin build, three Flutter app smoke tests and five shared mobile tests. The APKs use http://10.0.2.2:3001/v1 for an Android emulator connected to a locally running API. They are debug builds, not commercial releases; actual Android device/GPS, operator UAT, production integrations and monitoring/recovery remain unverified. Existing iOS scaffolding is retained, with permission plist structure checked, but further iOS work/builds are deferred.
 
 ## Android 0.2.0 update
+
 Runtime Wi-Fi server configuration, persistent local test backend and refreshed passenger search, bus detail, shared-seat/history/account screens are implemented. The labelled demo rejects mutations. Actual APK device acceptance remains outstanding. Production limitations above still apply.
 
 ## Production foundation batch
@@ -106,3 +107,7 @@ Production configuration validation, HTTPS transport restrictions, request corre
 ## Beta login decision — 19 October 2026
 
 SMS OTP is deferred by user direction until the first update of the real app. Owner-issued single-use invitations now provide an alternative for private beta sign-in across Passenger, Driver and Bus Crew. Codes expire, are stored as digests, and cannot grant operator/admin access or driver/vehicle approval. Backend integration passed; current published v0.2.0 APKs do not yet include this flow. Hosting, permanent signing and remaining device/product/operational checks remain open. See docs/operations/beta-login.md.
+
+## Bus owner beta 0.4.0 — 21 October 2026
+
+Bus app owner workspace, pending owner registration, unapproved fleet registration, ordered route setup, one-off/recurring service plans, holiday exclusions and approval-gated dated publication are implemented. Timetable publication is repeat-safe per plan/date and creates crew assignments. Scoped owner approval does not grant global operator/admin roles. A trusted audited review CLI is included; no ownership/vehicle evidence was fabricated. Four database integration suites and fourteen shared widget/session tests passed locally. Native CI run 39555615280 passed for source 043296a, including all three Android APKs and disposable signing checks. v0.4.0 GitHub downloads are published. Hosted migration 004/readiness, authenticated empty owner workspace and self-approval rejection passed. A fresh set of private invitations is stored outside Git. Physical-phone acceptance, real owner/vehicle review and all remaining master requirements are still open; this is not production readiness.
