@@ -47,3 +47,7 @@ must be checked for the final source before distributing the new APK.
 Additional crew invitations, document uploads, replacement-bus UI, operational
 analytics, map matching/stop detection and complete Malayalam translation remain
 unfinished. This change does not claim all master requirements or production readiness.
+
+## Scheduling follow-up
+
+Service creation now locks both bus and crew resources and rejects overlapping scheduled route intervals, including competing publications from different plans. Back-to-back trips are allowed. Integration covers overlap denial, independent-bus crew conflicts and concurrent competing requests with exactly one success. Type checking and all four embedded database suites passed. Native CI and deployment confirmation for this follow-up remain pending; current live source stays 043296a until verified.

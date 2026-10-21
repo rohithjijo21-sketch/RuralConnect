@@ -76,6 +76,35 @@ test(
     );
     await assert.rejects(owner.publish(b, p.id, '2030-01-07', '2030-01-09'));
     assert.equal((await owner.workspace(b)).vehicles.length, 0);
+    const extra = {
+      operatorId: op.operator_id,
+      routeVersionId: r.routeVersionId,
+      vehicleId: v.id,
+      crewId: a.id,
+      serviceDate: '2030-01-07',
+      departureAt: '2030-01-07T09:15:00+05:30',
+    };
+    await assert.rejects(bus.createService(a, extra), /overlapping/);
+    await bus.createService(a, { ...extra, departureAt: '2030-01-07T09:30:00+05:30' });
+    const competing = await Promise.allSettled([
+      bus.createService(a, {
+        ...extra,
+        serviceDate: '2030-01-10',
+        departureAt: '2030-01-10T09:00:00+05:30',
+      }),
+      bus.createService(a, {
+        ...extra,
+        serviceDate: '2030-01-10',
+        departureAt: '2030-01-10T09:15:00+05:30',
+      }),
+    ]);
+    assert.equal(competing.filter((x) => x.status === 'fulfilled').length, 1);
+    const anotherBus = await owner.vehicle(a, 'TEST-OWNER-SECOND', 32);
+    await pool.query('UPDATE vehicles SET approved=true WHERE id=$1', [anotherBus.id]);
+    await assert.rejects(
+      bus.createService(a, { ...extra, vehicleId: anotherBus.id }),
+      /overlapping/,
+    );
     assert.equal(
       (
         await pool.query(

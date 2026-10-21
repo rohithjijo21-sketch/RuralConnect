@@ -285,6 +285,34 @@ export class Bus {
         throw new ForbiddenException(
           'Route, approved bus and authorised crew must belong to this operator',
         );
+      // Serialize on both resources so two plans cannot double-book one bus or
+      // crew member, including concurrent publications from different plans.
+      const lockedBus = (
+        await db.query('SELECT approved FROM vehicles WHERE id=$1 FOR UPDATE', [input.vehicleId])
+      ).rows[0];
+      const lockedCrew = (
+        await db.query('SELECT suspended,deleted_at FROM users WHERE id=$1 FOR UPDATE', [
+          input.crewId,
+        ])
+      ).rows[0];
+      if (!lockedBus?.approved || !lockedCrew || lockedCrew.suspended || lockedCrew.deleted_at)
+        throw new ForbiddenException('Bus approval and active crew access are required');
+      const duration = (
+        await db.query(
+          'SELECT coalesce(max(offset_minutes),0)::int minutes FROM route_stops WHERE route_version_id=$1',
+          [input.routeVersionId],
+        )
+      ).rows[0].minutes;
+      if (duration <= 0)
+        throw new BadRequestException('Route must have a positive scheduled duration');
+      const conflict = (
+        await db.query(
+          "SELECT 1 FROM trip_instances t WHERE t.status<>'CANCELLED' AND (t.vehicle_id=$1 OR EXISTS(SELECT 1 FROM driver_assignments a WHERE a.trip_id=t.id AND a.user_id=$2)) AND t.departure_at < $3::timestamptz + $4::int * interval '1 minute' AND $3::timestamptz < t.departure_at + (SELECT coalesce(max(offset_minutes),0) * interval '1 minute' FROM route_stops WHERE route_version_id=t.route_version_id) LIMIT 1",
+          [input.vehicleId, input.crewId, input.departureAt, duration],
+        )
+      ).rowCount;
+      if (conflict)
+        throw new ConflictException('Bus or crew already has an overlapping scheduled trip');
       const t = (
         await db.query(
           'INSERT INTO trip_instances(operator_id,route_version_id,vehicle_id,service_date,departure_at) VALUES($1,$2,$3,$4,$5) RETURNING *',
