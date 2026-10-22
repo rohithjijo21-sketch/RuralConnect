@@ -2805,7 +2805,31 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** Format: uuid */
+                    routeVersionId: string;
+                    /** Format: uuid */
+                    vehicleId: string;
+                    /** Format: uuid */
+                    crewId: string;
+                    departureTime: string;
+                    /** Format: date */
+                    startDate: string;
+                    /** Format: date */
+                    endDate: string;
+                    weekdays: number[];
+                    excludedDates: string[];
+                    /**
+                     * Format: uuid
+                     * @description Optional owner-scoped source timetable. Creates an audited immutable revision; existing plans and trips remain unchanged.
+                     */
+                    previousPlanId?: string;
+                };
+            };
+        };
         responses: {
             /** @description Successful server response */
             201: {
