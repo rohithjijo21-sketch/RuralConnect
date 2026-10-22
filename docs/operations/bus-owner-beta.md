@@ -51,3 +51,7 @@ unfinished. This change does not claim all master requirements or production rea
 ## Scheduling follow-up
 
 Service creation now locks both bus and crew resources and rejects overlapping scheduled route intervals, including competing publications from different plans. Back-to-back trips are allowed. Integration covers overlap denial, independent-bus crew conflicts and concurrent competing requests with exactly one success. Type checking and all four embedded database suites passed. Native CI and deployment confirmation for this follow-up remain pending; current live source stays 043296a until verified.
+
+## Reinstatement follow-up — 22 October 2026
+
+Cancelled services cannot be reinstated into an overlapping bus or crew assignment. Current vehicle approval and active crew role/operator membership are rechecked while reserving resources. Five embedded integration suites and TypeScript checking passed; native CI/deployment still pending for this source. The full replacement-bus selection interface is still unfinished.

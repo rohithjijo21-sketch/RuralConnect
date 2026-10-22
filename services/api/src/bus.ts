@@ -124,6 +124,43 @@ export class Bus {
       if (t.version !== input.version) throw new ConflictException('Refresh trip; version changed');
       if (!canTransition(t.status, input.status, op))
         throw new ConflictException('Invalid trip transition');
+      if (t.status === 'CANCELLED') {
+        // Reinstatement reserves the same resources as publication. Another
+        // service may have taken this slot while the trip was cancelled.
+        const vehicle = (
+          await db.query(
+            "SELECT approved FROM vehicles WHERE id=$1 AND operator_id=$2 AND category='BUS' FOR UPDATE",
+            [t.vehicle_id, t.operator_id],
+          )
+        ).rows[0];
+        const crew = (
+          await db.query(
+            'SELECT u.id,u.suspended,u.deleted_at FROM users u JOIN driver_assignments a ON a.user_id=u.id WHERE a.trip_id=$1 ORDER BY u.id FOR UPDATE OF u',
+            [t.id],
+          )
+        ).rows;
+        if (!vehicle?.approved || !crew.length || crew.some((u) => u.suspended || u.deleted_at))
+          throw new ForbiddenException('An approved bus and active assigned crew are required');
+        const crewIds = crew.map((u) => u.id);
+        const eligible = (
+          await db.query(
+            "SELECT count(DISTINCT m.user_id)::int n FROM operator_members m JOIN user_roles r ON r.user_id=m.user_id AND r.role='BUS_CREW' WHERE m.operator_id=$1 AND m.user_id=ANY($2::uuid[])",
+            [t.operator_id, crewIds],
+          )
+        ).rows[0].n;
+        if (eligible !== crewIds.length)
+          throw new ForbiddenException(
+            'Assigned crew must retain operator membership and crew access',
+          );
+        const conflict = (
+          await db.query(
+            "SELECT 1 FROM trip_instances other WHERE other.id<>$1 AND other.status<>'CANCELLED' AND (other.vehicle_id=$2 OR EXISTS(SELECT 1 FROM driver_assignments a WHERE a.trip_id=other.id AND a.user_id=ANY($3::uuid[]))) AND other.departure_at < $4::timestamptz + (SELECT coalesce(max(offset_minutes),0) * interval '1 minute' FROM route_stops WHERE route_version_id=$5) AND $4::timestamptz < other.departure_at + (SELECT coalesce(max(offset_minutes),0) * interval '1 minute' FROM route_stops WHERE route_version_id=other.route_version_id) LIMIT 1",
+            [t.id, t.vehicle_id, crewIds, t.departure_at, t.route_version_id],
+          )
+        ).rowCount;
+        if (conflict)
+          throw new ConflictException('Bus or crew already has an overlapping scheduled trip');
+      }
       const updated = (
         await db.query(
           'UPDATE trip_instances SET status=$1,delay_minutes=$2,version=version+1 WHERE id=$3 RETURNING *',

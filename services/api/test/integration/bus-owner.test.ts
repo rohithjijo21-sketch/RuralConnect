@@ -105,6 +105,50 @@ test(
       bus.createService(a, { ...extra, vehicleId: anotherBus.id }),
       /overlapping/,
     );
+    const original = first.trips[0];
+    const cancelled = await bus.status(a, original.id, {
+      status: 'CANCELLED',
+      reason: 'TEST cancellation',
+      delayMinutes: 0,
+      version: original.version,
+    });
+    const replacement = await bus.createService(a, {
+      ...extra,
+      departureAt: '2030-01-07T09:00:00+05:30',
+    });
+    await assert.rejects(
+      bus.status(a, original.id, {
+        status: 'SCHEDULED',
+        reason: 'TEST reinstate conflict',
+        delayMinutes: 0,
+        version: cancelled.version,
+      }),
+      /overlapping/,
+    );
+    await bus.status(a, replacement.id, {
+      status: 'CANCELLED',
+      reason: 'TEST release replacement',
+      delayMinutes: 0,
+      version: replacement.version,
+    });
+    await pool.query('UPDATE vehicles SET approved=false WHERE id=$1', [v.id]);
+    await assert.rejects(
+      bus.status(a, original.id, {
+        status: 'SCHEDULED',
+        reason: 'TEST revoked bus',
+        delayMinutes: 0,
+        version: cancelled.version,
+      }),
+      /approved bus/,
+    );
+    await pool.query('UPDATE vehicles SET approved=true WHERE id=$1', [v.id]);
+    const restored = await bus.status(a, original.id, {
+      status: 'SCHEDULED',
+      reason: 'TEST safe reinstatement',
+      delayMinutes: 0,
+      version: cancelled.version,
+    });
+    assert.equal(restored.status, 'SCHEDULED');
     assert.equal(
       (
         await pool.query(
