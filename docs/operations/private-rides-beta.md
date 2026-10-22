@@ -23,3 +23,7 @@ User requested a new premium palette, typeface and layout while private ride del
 Initial source 5f91112 had a native integration fixture ordering failure: the private suite assumed another concurrently running test had created an ordinary AUTO fare. The private fixture now provisions its own explicit test fare policy. Five embedded suites and 22 mobile tests pass with the final design. Foreground location work also checks app activity and cancels pending sharing after navigation/backgrounding. Native CI must pass for the final follow-up source before release.
 
 Final premium source 5f6b426 passed the native platform checks, all 22 shared mobile tests and analysis. Render deploy dep-dbcedtom7kps73ffvppg is live with migration 005 and protected endpoint checks verified. All three new local previews were browser reviewed. Complete mobile CI run 39633711359 and checked APK publication still pending. No real-user/device testing is claimed.
+
+## 22 October release verification
+
+Android 0.6.0 source 5f6b426f981678f60701c5cf577404e63739d73c passed full CI 39633711359. Release workflow 39724858104 succeeded and published all three APKs plus verified checksum text at https://github.com/rohithjijo21-sketch/RuralConnect/releases/tag/android-dev-v0.6.0 . Backend deployment and migration 005 were already verified; no redundant deployment is needed. Remaining physical-device acceptance is deferred by the user, and commercial readiness is not claimed.

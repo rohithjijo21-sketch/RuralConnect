@@ -8,7 +8,7 @@ Sign in with the account phone number and a private, single-use invitation from 
 
 Android installation: open the APK on your phone, allow installation from that browser or file manager if Android requests it, then open RuralConnect. An older APK signed with another development key may require uninstalling the previous app, which clears its local data. Keep Play Protect enabled.
 
-The Passenger labelled UI demo is read-only and separate from the hosted server. A fresh hosted database has no demo routes, vehicles or bookings; empty lists are expected until real beta resources are configured. Digital payments, full private ride matching and other documented workflows remain unfinished. Use this release for supervised beta feedback. iOS is deferred.
+The Passenger labelled UI demo is read-only and separate from the hosted server. A fresh hosted database has no demo routes, vehicles or bookings; empty lists are expected until real beta resources are configured. Digital payments, road routing, traffic-aware arrival estimates, background tracking, notifications and other documented workflows remain unfinished. Private ride matching is available for approved online drivers with fresh foreground GPS. Use this release for supervised beta feedback. iOS is deferred.
 
 Report the app name/version, Android version, steps and error text to the owner. Do not include invitation codes, tokens or other testers' personal information in reports.
 
