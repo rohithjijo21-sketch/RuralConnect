@@ -55,3 +55,7 @@ Service creation now locks both bus and crew resources and rejects overlapping s
 ## Reinstatement follow-up — 22 October 2026
 
 Cancelled services cannot be reinstated into an overlapping bus or crew assignment. Current vehicle approval and active crew role/operator membership are rechecked while reserving resources. Five embedded integration suites and TypeScript checking passed; native CI/deployment still pending for this source. The full replacement-bus selection interface is still unfinished.
+
+## Create a revised timetable
+
+Choose Create revised timetable on an existing owner plan. Change the prefilled details and save: the server creates a separate plan and records its source in the operator audit log. Existing published trips keep their original route, bus, crew and departure. Cancel conflicting dated services explicitly before publishing the revised plan; overlapping publication is rejected. This does not grant new owner, vehicle or crew approval. Requires the forthcoming API and Android 0.7.0 update; current 0.6.0 downloads do not contain it.

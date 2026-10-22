@@ -145,6 +145,40 @@ const source = await readFile(
   'utf8',
 );
 const paths = {};
+requests['POST bus-owner/plans'] = obj(
+  {
+    name: str,
+    routeVersionId: uuid,
+    vehicleId: uuid,
+    crewId: uuid,
+    departureTime: { type: 'string', pattern: '^([01]\\d|2[0-3]):[0-5]\\d$' },
+    startDate: { type: 'string', format: 'date' },
+    endDate: { type: 'string', format: 'date' },
+    weekdays: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 7,
+      items: { type: 'integer', minimum: 1, maximum: 7 },
+    },
+    excludedDates: { type: 'array', maxItems: 366, items: { type: 'string', format: 'date' } },
+    previousPlanId: {
+      ...uuid,
+      description:
+        'Optional owner-scoped source timetable. Creates an audited immutable revision; existing plans and trips remain unchanged.',
+    },
+  },
+  [
+    'name',
+    'routeVersionId',
+    'vehicleId',
+    'crewId',
+    'departureTime',
+    'startDate',
+    'endDate',
+    'weekdays',
+    'excludedDates',
+  ],
+);
 for (const m of source.matchAll(/@(Get|Post|Patch|Delete)\('([^']+)'\)/g)) {
   const method = m[1].toUpperCase(),
     p = m[2],

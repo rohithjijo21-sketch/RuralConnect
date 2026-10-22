@@ -75,6 +75,34 @@ test(
       2,
     );
     await assert.rejects(owner.publish(b, p.id, '2030-01-07', '2030-01-09'));
+    await assert.rejects(owner.plan(b, input, p.id), /Timetable not found/);
+    const revised = await owner.plan(
+      a,
+      { ...input, name: 'Later service', departureTime: '10:00' },
+      p.id,
+    );
+    assert.notEqual(revised.id, p.id);
+    assert.equal(
+      (await pool.query('SELECT departure_time::text t FROM bus_service_plans WHERE id=$1', [p.id]))
+        .rows[0].t,
+      '09:00:00',
+    );
+    assert.equal(
+      (
+        await pool.query(
+          "SELECT detail->>'previousPlanId' previous FROM audit_logs WHERE resource_id=$1 AND action='timetable.revise'",
+          [revised.id],
+        )
+      ).rows[0].previous,
+      p.id,
+    );
+    const revisedTrips = await owner.publish(a, revised.id, '2030-01-07', '2030-01-09');
+    assert.equal(revisedTrips.trips.length, 2);
+    assert.equal(
+      (await pool.query('SELECT count(*)::int n FROM bus_plan_instances WHERE plan_id=$1', [p.id]))
+        .rows[0].n,
+      2,
+    );
     assert.equal((await owner.workspace(b)).vehicles.length, 0);
     const extra = {
       operatorId: op.operator_id,

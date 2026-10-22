@@ -99,9 +99,18 @@ export class BusOwner {
       return v;
     });
   }
-  async plan(actor: Actor, input: any) {
+  async plan(actor: Actor, input: any, previousPlanId?: string) {
     return transaction(async (db) => {
       const o = await this.own(actor, db);
+      if (previousPlanId) {
+        const previous = (
+          await db.query('SELECT id FROM bus_service_plans WHERE id=$1 AND operator_id=$2', [
+            previousPlanId,
+            o.operator_id,
+          ])
+        ).rows[0];
+        if (!previous) throw new NotFoundException('Timetable not found in your workspace');
+      }
       const ok = (
         await db.query(
           "SELECT 1 FROM vehicles v JOIN bus_routes r ON r.operator_id=v.operator_id JOIN route_versions rv ON rv.route_id=r.id JOIN operator_members m ON m.operator_id=v.operator_id JOIN user_roles ur ON ur.user_id=m.user_id AND ur.role='BUS_CREW' WHERE v.id=$1 AND rv.id=$2 AND v.operator_id=$3 AND m.user_id=$4 AND v.category='BUS'",
@@ -132,6 +141,11 @@ export class BusOwner {
         "INSERT INTO audit_logs(actor_id,operator_id,action,resource_id) VALUES($1,$2,'timetable.create',$3)",
         [actor.id, o.operator_id, p.id],
       );
+      if (previousPlanId)
+        await db.query(
+          "INSERT INTO audit_logs(actor_id,operator_id,action,resource_id,detail) VALUES($1,$2,'timetable.revise',$3,$4)",
+          [actor.id, o.operator_id, p.id, JSON.stringify({ previousPlanId })],
+        );
       return p;
     });
   }

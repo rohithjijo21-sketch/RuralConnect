@@ -243,6 +243,26 @@ class _BusOwnerState extends State<BusOwnerScreen> {
                                           '${p['published_trips']} dated trips published',
                                         ),
                                         const SizedBox(height: 8),
+                                        OutlinedButton.icon(
+                                          onPressed: busy
+                                              ? null
+                                              : () => open(
+                                                  BusSetupForm(
+                                                    api: widget.api,
+                                                    kind: 'plan',
+                                                    workspace: data!,
+                                                    previousPlan:
+                                                        Map<
+                                                          String,
+                                                          dynamic
+                                                        >.from(p),
+                                                  ),
+                                                ),
+                                          icon: const Icon(Icons.edit_calendar),
+                                          label: const Text(
+                                            'Create revised timetable',
+                                          ),
+                                        ),
                                         FilledButton.icon(
                                           onPressed:
                                               busy ||
@@ -329,11 +349,13 @@ class BusSetupForm extends StatefulWidget {
   final Api api;
   final String kind;
   final Map<String, dynamic> workspace;
+  final Map<String, dynamic>? previousPlan;
   const BusSetupForm({
     super.key,
     required this.api,
     required this.kind,
     required this.workspace,
+    this.previousPlan,
   });
   @override
   State<BusSetupForm> createState() => _BusSetupFormState();
@@ -357,6 +379,24 @@ class _BusSetupFormState extends State<BusSetupForm> {
     addStop();
     final members = widget.workspace['crew'] as List? ?? [];
     if (members.isNotEmpty) crew = members.first['id'];
+    final p = widget.previousPlan;
+    if (p != null) {
+      name.text = p['name'].toString();
+      vehicle = p['vehicle_id'];
+      route = p['route_version_id'];
+      crew = members.any((m) => m['id'] == p['crew_id']) ? p['crew_id'] : null;
+      start = DateTime.parse(p['start_date'].toString().split('T').first);
+      end = DateTime.parse(p['end_date'].toString().split('T').first);
+      recurring = start != end;
+      final parts = p['departure_time'].toString().split(':');
+      time = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+      weekdays
+        ..clear()
+        ..addAll((p['weekdays'] as List).cast<int>());
+      exceptions.text = (p['excluded_dates'] as List)
+          .map((d) => d.toString().split('T').first)
+          .join(', ');
+    }
   }
 
   void addStop() => stops.add(List.generate(4, (_) => TextEditingController()));
@@ -530,6 +570,8 @@ class _BusSetupFormState extends State<BusSetupForm> {
             'endDate': busDate(recurring ? end : start),
             'weekdays': recurring ? weekdays.toList() : [start.weekday],
             'excludedDates': excluded,
+            if (widget.previousPlan != null)
+              'previousPlanId': widget.previousPlan!['id'],
           };
       }
       await widget.api.request(path, method: 'POST', data: body);
@@ -558,6 +600,13 @@ class _BusSetupFormState extends State<BusSetupForm> {
             padding: const EdgeInsets.all(20),
             children: [
               if (busy) const LinearProgressIndicator(),
+              if (widget.previousPlan != null)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    'Save creates a new timetable and keeps the original timetable and published trips unchanged. Cancel conflicting dated services before publishing the revision. Approval and scheduling checks still apply.',
+                  ),
+                ),
               if (error != null)
                 Text(
                   error!,
@@ -747,12 +796,22 @@ class _BusSetupFormState extends State<BusSetupForm> {
                           final d = await showDatePicker(
                             context: context,
                             initialDate: start,
-                            firstDate: DateTime.now().subtract(
-                              const Duration(days: 1),
-                            ),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 730),
-                            ),
+                            firstDate:
+                                start.isBefore(
+                                  DateTime.now().subtract(
+                                    const Duration(days: 1),
+                                  ),
+                                )
+                                ? start
+                                : DateTime.now().subtract(
+                                    const Duration(days: 1),
+                                  ),
+                            lastDate:
+                                start.isAfter(
+                                  DateTime.now().add(const Duration(days: 730)),
+                                )
+                                ? start.add(const Duration(days: 730))
+                                : DateTime.now().add(const Duration(days: 730)),
                           );
                           if (d != null) {
                             setState(() {

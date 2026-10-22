@@ -1,4 +1,4 @@
-# RuralConnect Android 0.6.0 — hosted private beta
+# RuralConnect Android 0.7.0 — hosted private beta
 
 Download the Passenger, Driver or Bus Crew APK for your assigned role. These are debug-signed private-beta test builds, not production releases. SHA256SUMS.txt contains the download hashes. Build checks must pass for the exact tagged source; actual-device acceptance remains to be completed.
 
@@ -17,3 +17,7 @@ Bus 0.4.0 adds Owner setup: register an owner workspace, add buses, ordered rout
 ## Private Taxi / Auto beta
 
 Passenger Taxi / auto opens map-based pickup and destination selection, a temporary straight-line cash estimate and a real ride request. Approved online drivers share foreground GPS to receive matching requests within 8 km. Requests expire after 3 minutes. Passengers confirm pickup in their own app before a driver can start. Completed rides can record cash received; this does not process a digital payment. Private ride location updates require the driver page to remain open. Temporary beta defaults are Auto ₹30 + ₹15 per started straight-line kilometre and Taxi ₹60 + ₹20/km. They are disabled outside invitation beta mode unless an owner-configured normal fare policy exists. Real driver/vehicle approval and a second account are needed for device acceptance. Road navigation opens the phone’s external maps app; traffic ETA, background GPS and automatic road routing are not included.
+
+## Bus timetable revision update
+
+Bus Owner setup adds Create revised timetable with prefilled schedule, bus, route, crew and holiday details. Saving creates an audited new plan while preserving old plans and dated services. Cancel old conflicting services explicitly before publishing the revision. Backend scheduling also rechecks bus and crew reservations when reinstating a cancelled trip. Real approvals remain required.

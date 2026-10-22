@@ -324,10 +324,11 @@ class Api {
         endDate: z.iso.date(),
         weekdays: z.array(z.number().int().min(1).max(7)).min(1).max(7),
         excludedDates: z.array(z.iso.date()).max(366),
+        previousPlanId: uuid.optional(),
       })
       .strict()
       .parse(b);
-    return this.owner.plan(await this.auth.actor(h), v);
+    return this.owner.plan(await this.auth.actor(h), v, v.previousPlanId);
   }
   @Post('bus-owner/plans/:id/publish') async ownerPublish(
     @Headers('authorization') h: string,

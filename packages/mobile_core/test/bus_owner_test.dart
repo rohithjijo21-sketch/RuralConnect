@@ -49,7 +49,78 @@ class OwnerFixture extends Api {
   }
 }
 
+class RevisionFixture extends Api {
+  Map? submitted;
+  @override
+  Future<dynamic> request(
+    String path, {
+    String method = 'GET',
+    dynamic data,
+    Map<String, String>? headers,
+    bool retry = true,
+  }) async {
+    submitted = Map.from(data as Map);
+    throw StateError('Revision save rejected');
+  }
+}
+
 void main() {
+  testWidgets(
+    'Timetable revision prefills the original and preserves edits when the server rejects save',
+    (tester) async {
+      final api = RevisionFixture();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BusSetupForm(
+            api: api,
+            kind: 'plan',
+            workspace: const {
+              'vehicles': [
+                {'id': 'bus-id', 'registration': 'TEST-BUS'},
+              ],
+              'routes': [
+                {'id': 'route-id', 'name': 'TEST route'},
+              ],
+              'crew': [
+                {'id': 'crew-id', 'name': 'TEST crew'},
+              ],
+            },
+            previousPlan: const {
+              'id': 'original-id',
+              'name': 'Morning service',
+              'vehicle_id': 'bus-id',
+              'route_version_id': 'route-id',
+              'crew_id': 'crew-id',
+              'departure_time': '09:15:00',
+              'start_date': '2030-01-07',
+              'end_date': '2030-01-09',
+              'weekdays': [1, 3],
+              'excluded_dates': ['2030-01-08'],
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Morning service'), findsOneWidget);
+      await tester.enterText(
+        find.byType(TextFormField).first,
+        'Revised service',
+      );
+      await tester.scrollUntilVisible(
+        find.text('Save details'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Save details'));
+      await tester.pumpAndSettle();
+      expect(api.submitted?['previousPlanId'], 'original-id');
+      expect(api.submitted?['departureTime'], '09:15');
+      expect(api.submitted?['weekdays'], [1, 3]);
+      expect(api.submitted?['excludedDates'], ['2030-01-08']);
+      expect(api.submitted?['name'], 'Revised service');
+      expect(find.text('Save details'), findsOneWidget);
+    },
+  );
   testWidgets(
     'Owner registration persists only after server success and pending owner cannot publish',
     (tester) async {
