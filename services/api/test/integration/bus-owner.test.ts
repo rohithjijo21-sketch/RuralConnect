@@ -149,6 +149,23 @@ test(
       version: cancelled.version,
     });
     assert.equal(restored.status, 'SCHEDULED');
+    const cancelledAgain = await bus.status(a, original.id, {
+      status: 'CANCELLED',
+      reason: 'TEST concurrent reinstatement',
+      delayMinutes: 0,
+      version: restored.version,
+    });
+    const restoreRace = await Promise.allSettled([
+      bus.status(a, original.id, {
+        status: 'SCHEDULED',
+        reason: 'TEST racing publication',
+        delayMinutes: 0,
+        version: cancelledAgain.version,
+      }),
+      bus.createService(a, { ...extra, departureAt: '2030-01-07T09:00:00+05:30' }),
+    ]);
+    assert.equal(restoreRace.filter((result) => result.status === 'fulfilled').length, 1);
+    assert.equal(restoreRace.filter((result) => result.status === 'rejected').length, 1);
     assert.equal(
       (
         await pool.query(
