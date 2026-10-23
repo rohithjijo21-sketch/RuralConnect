@@ -153,3 +153,11 @@ Source versions advance to 0.7.0+7 for the next release. These changes are not y
 ## Timetable revision contract fix — 22 October 2026
 
 CI 39781035672 for bc2d465 passed the mobile job and native PostgreSQL integration checks, but failed the generated-contract consistency gate because generated.ts had not been regenerated alongside the new timetable request schema. Ran the complete pnpm contracts:generate command and included the generated TypeScript output. No runtime behavior or release check was bypassed. Final exact-source CI must pass before deployment and 0.7.0 publication. Existing hosted backend and 0.6.0 downloads are unchanged.
+
+## Android 0.7.0 deployed and published — 23 October 2026
+
+Browser access returned, so the pending user action is no longer required. Deployed exact checked source 9b1b1348a31ad9b1f6b855d97dc883457e10e8fa to existing Render Free service through dep-dbdcienavr4c739jg6jg. Render confirmed Deploy succeeded / Live. External health/readiness returned 200, OpenAPI exposes previousPlanId for timetable revisions, and unauthenticated owner workspace returned 401. No secrets, approvals, user invitation codes or sessions were changed.
+
+Full source CI 39789875632 passed. Tag android-dev-v0.7.0 points to the exact checked/deployed application source; release workflow 39891161195 succeeded. Three APKs and SHA256SUMS.txt are published at https://github.com/rohithjijo21-sketch/RuralConnect/releases/tag/android-dev-v0.7.0 . Downloaded checksum text matches GitHub asset digests for Passenger, Driver and Bus. The Bus update includes Create revised timetable and the backend safely rechecks reinstated bus/crew scheduling. These are debug-signed private-beta builds, with real-device acceptance still deferred. No production-readiness claim.
+
+Next work: scoped crew membership (preparation saved outside Git in task outputs/RuralConnect scoped crew preparation.md), document upload/review and replacement-bus selection remain unfinished. Do not repeat the completed Render rollout, tag/release 0.7.0 again, request tester numbers, or notify again about old releases. Source-only documentation commits after this point must not replace the checked application SHA for any release reference.
